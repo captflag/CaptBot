@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+httpx
+# AI & LangChain
+langchain
+langchain-google-genai
+langchain-community
+langchain-text-splitters
+chromadb
+# Google Gemini
+google-generativeai
+# Utilities
+python-multipart
