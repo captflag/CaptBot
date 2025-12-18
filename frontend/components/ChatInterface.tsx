@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Image as ImageIcon, Loader2, Bot, User, Sparkles, Paperclip } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, Terminal, User, Power, Paperclip } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Message {
@@ -40,7 +40,7 @@ export default function ChatInterface() {
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
-            content: input + (selectedFile ? ` [Image: ${selectedFile.name}]` : ''),
+            content: input + (selectedFile ? ` [IMAGE_ATTACHED: ${selectedFile.name}]` : ''),
             timestamp: new Date(),
         };
 
@@ -64,7 +64,7 @@ export default function ChatInterface() {
                 body: formData,
             });
 
-            if (!response.ok) throw new Error('Failed to send message');
+            if (!response.ok) throw new Error('CONNECTION_FAILURE');
 
             const data = await response.json();
 
@@ -80,7 +80,7 @@ export default function ChatInterface() {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'Error connecting to server. Please try again.',
+                content: 'CRITICAL_ERROR: UNABLE_TO_REACH_MAINFRAME. RETRY_LATER.',
                 timestamp: new Date(),
             };
             setMessages((prev) => [...prev, errorMessage]);
@@ -90,180 +90,138 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden relative selection:bg-indigo-500/30">
-            {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse-slow" />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-pink-600/10 rounded-full blur-[120px] animate-pulse-slow" />
-            </div>
-
+        <div className="flex flex-col h-screen bg-black text-[var(--terminal-green)] font-mono overflow-hidden relative">
             {/* Header */}
-            <header className="glass-dark z-10 px-6 py-4 flex items-center justify-between border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
-                        <Bot className="w-6 h-6 text-white" />
+            <header className="z-10 px-6 py-4 flex items-center justify-between border-b-2 border-[var(--terminal-green-dim)] bg-black/90">
+                <div className="flex items-center gap-4">
+                    <div className="p-2 border border-[var(--terminal-green)] shadow-[var(--crt-glow)]">
+                        <Terminal className="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tight">
-                            CaptBot
+                        <h1 className="text-xl font-bold tracking-[0.2em] uppercase">
+                            CaptBot.v1.0
                         </h1>
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-xs text-slate-400 font-medium">Online</p>
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 bg-[var(--terminal-green)] animate-pulse" />
+                            <p className="text-[10px] uppercase opacity-70">System_Active // Port: 8000</p>
                         </div>
                     </div>
+                </div>
+                <div className="hidden md:flex items-center gap-6 opacity-60 text-xs">
+                    <p>MEM: 640KB</p>
+                    <p>SECURE: YES</p>
+                    <Power className="w-4 h-4 cursor-pointer hover:text-white transition-colors" />
                 </div>
             </header>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 z-0 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-                <AnimatePresence initial={false}>
-                    {messages.map((message) => (
-                        <motion.div
-                            key={message.id}
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                            className={clsx(
-                                'flex w-full',
-                                message.role === 'user' ? 'justify-end' : 'justify-start'
-                            )}
-                        >
-                            <div
-                                className={clsx(
-                                    'flex max-w-[85%] md:max-w-[70%] gap-3',
-                                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                                )}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-none relative">
+                <div className="max-w-5xl mx-auto">
+                    {messages.length === 0 && (
+                        <div className="opacity-40 text-sm italic py-10">
+                            &gt; AWAITING COMMANDS...
+                            <br />
+                            &gt; SYSTEM READY.
+                        </div>
+                    )}
+                    <AnimatePresence initial={false}>
+                        {messages.map((message) => (
+                            <motion.div
+                                key={message.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex flex-col gap-2 mb-8"
                             >
-                                {/* Avatar */}
-                                <div className={clsx(
-                                    'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg',
-                                    message.role === 'user'
-                                        ? 'bg-gradient-to-br from-indigo-500 to-blue-600'
-                                        : 'bg-gradient-to-br from-pink-500 to-rose-600'
-                                )}>
-                                    {message.role === 'user' ? <User size={14} className="text-white" /> : <Sparkles size={14} className="text-white" />}
-                                </div>
-
-                                {/* Message Bubble */}
-                                <div
-                                    className={clsx(
-                                        'p-4 rounded-2xl shadow-md backdrop-blur-sm transition-all',
-                                        message.role === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-tr-sm'
-                                            : 'bg-slate-800/80 border border-white/5 text-slate-200 rounded-tl-sm hover:bg-slate-800/90'
-                                    )}
-                                >
-                                    <p className="whitespace-pre-wrap leading-relaxed text-[15px]">{message.content}</p>
+                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
                                     <span className={clsx(
-                                        "text-[10px] mt-2 block font-medium",
-                                        message.role === 'user' ? 'text-indigo-200/70' : 'text-slate-500'
+                                        message.role === 'user' ? 'text-[var(--terminal-amber)]' : 'text-[var(--terminal-green)]'
                                     )}>
-                                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {message.role === 'user' ? 'USER >> ' : 'AI >> '}
                                     </span>
+                                    <span className="opacity-40">{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                                 </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
 
-                {isLoading && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 ml-1"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg">
-                            <Bot size={14} className="text-white" />
+                                <div className={clsx(
+                                    'p-5 border border-[var(--terminal-green-dim)] bg-[var(--terminal-green-dim)]/5',
+                                    message.role === 'user' ? 'border-l-4 border-l-[var(--terminal-amber)]' : 'border-l-4 border-l-[var(--terminal-green)]'
+                                )}>
+                                    <p className="whitespace-pre-wrap leading-relaxed text-[17px] drop-shadow-[0_0_5px_rgba(0,255,65,0.3)]">
+                                        {message.content}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+
+                    {isLoading && (
+                        <div className="flex items-center gap-2 mt-4 animate-pulse">
+                            <span className="text-sm font-bold uppercase">&gt; PROCESSING...</span>
+                            <Loader2 className="w-4 h-4 animate-spin" />
                         </div>
-                        <div className="bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-white/5 flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-                            <span className="text-sm text-slate-400 font-medium">CaptBot is thinking...</span>
-                        </div>
-                    </motion.div>
-                )}
-                <div ref={messagesEndRef} />
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
             {/* Input Area */}
-            <div className="p-4 md:p-6 z-10 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent">
-                <div className="max-w-4xl mx-auto relative group">
-                    {/* Glow Effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-pink-500 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+            <div className="p-4 md:p-8 bg-black border-t-2 border-[var(--terminal-green-dim)]">
+                <div className="max-w-5xl mx-auto">
+                    <div className="flex items-center gap-4 mb-4">
+                        <span className="text-[var(--terminal-green)] font-bold text-lg">INPUT &gt; </span>
+                        <div className="flex-1 relative flex items-center border border-[var(--terminal-green)] bg-black/50 overflow-hidden focus-within:ring-2 focus-within:ring-[var(--terminal-green)] transition-all">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                                accept="image/*"
+                                className="hidden"
+                            />
 
-                    <div className="relative glass-dark rounded-2xl p-2 flex items-end gap-2 bg-slate-900/90">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileSelect}
-                            accept="image/*"
-                            className="hidden"
-                        />
+                            <textarea
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                placeholder="TYPE_MESSAGE_HERE..."
+                                className="flex-1 bg-transparent border-0 focus:ring-0 text-[var(--terminal-green)] placeholder-[var(--terminal-green-dim)] resize-none p-4 max-h-32 min-h-[56px] scrollbar-none text-[18px] uppercase font-mono"
+                                rows={1}
+                            />
 
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className={clsx(
-                                "p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95",
-                                selectedFile
-                                    ? "bg-pink-500/20 text-pink-400 ring-1 ring-pink-500/50"
-                                    : "hover:bg-slate-800 text-slate-400 hover:text-indigo-400"
-                            )}
-                            title="Upload Image"
-                        >
-                            <Paperclip size={20} />
-                        </button>
+                            <div className="flex px-2 gap-2">
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={clsx(
+                                        "p-2 hover:bg-[var(--terminal-green)] hover:text-black transition-all",
+                                        selectedFile && "bg-[var(--terminal-green)] text-black"
+                                    )}
+                                    title="LINK_FILE"
+                                >
+                                    <Paperclip size={22} />
+                                </button>
+                                <button
+                                    onClick={handleSend}
+                                    disabled={!input.trim() && !selectedFile}
+                                    className="p-2 hover:bg-[var(--terminal-green)] hover:text-black transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[var(--terminal-green)]"
+                                >
+                                    <Send size={22} />
+                                </button>
+                            </div>
+                            <div className="cursor-blink absolute bottom-4 left-[200px]" style={{ left: `${(input.length * 11) + 80}px`, display: input.length > 50 ? 'none' : 'inline-block' }}></div>
+                        </div>
+                    </div>
 
-                        <textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            placeholder="Message CaptBot..."
-                            className="flex-1 bg-transparent border-0 focus:ring-0 text-slate-200 placeholder-slate-500 resize-none py-3 max-h-32 min-h-[44px] scrollbar-none text-[15px]"
-                            rows={1}
-                        />
-
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() && !selectedFile}
-                            className={clsx(
-                                "p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95",
-                                (input.trim() || selectedFile)
-                                    ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/25"
-                                    : "bg-slate-800 text-slate-600 cursor-not-allowed"
-                            )}
-                        >
-                            <Send size={20} />
-                        </button>
+                    <div className="flex justify-between items-center text-[10px] uppercase opacity-50 px-2 mt-4">
+                        <div className="flex gap-4">
+                            <span>SESSION: DEFAULT</span>
+                            {selectedFile && <span>ATTACHED: {selectedFile.name}</span>}
+                        </div>
+                        <p>PROCEED_WITH_CAUTION // AI_GENERATED_CONTENT</p>
                     </div>
                 </div>
-
-                {selectedFile && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="max-w-4xl mx-auto mt-3 px-1"
-                    >
-                        <div className="inline-flex items-center gap-2 bg-slate-800/80 border border-white/10 px-3 py-1.5 rounded-full text-xs text-slate-300">
-                            <ImageIcon size={12} className="text-pink-400" />
-                            <span className="truncate max-w-[200px]">{selectedFile.name}</span>
-                            <button
-                                onClick={() => setSelectedFile(null)}
-                                className="ml-1 hover:text-white transition-colors"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-
-                <p className="text-center text-[10px] text-slate-600 mt-3">
-                    CaptBot can make mistakes. Check important info.
-                </p>
             </div>
         </div>
     );

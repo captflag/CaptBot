@@ -1,28 +1,131 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #000000;
+  --foreground: #00ff41;
+  --terminal-green: #00ff41;
+  --terminal-green-dim: #003b00;
+  --terminal-amber: #ffb000;
+  --crt-glow: 0 0 10px rgba(0, 255, 65, 0.5);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--terminal-green);
+  font-family: "JetBrains Mono", "Courier New", Courier, monospace;
+  overflow-x: hidden;
+  text-shadow: var(--crt-glow);
 }
 
-/* Glassmorphism Utilities */
-@utility glass {
-  @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+/* CRT Screen Effect Overlay */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg,
+      rgba(255, 0, 0, 0.06),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: flicker 0.15s infinite;
 }
 
-@utility glass-dark {
-  @apply bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 shadow-xl;
+/* Background Grid */
+.terminal-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(var(--terminal-green-dim) 1px, transparent 1px),
+    linear-gradient(90deg, var(--terminal-green-dim) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 0.97;
+  }
+
+  5% {
+    opacity: 0.95;
+  }
+
+  10% {
+    opacity: 0.9;
+  }
+
+  15% {
+    opacity: 0.98;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.99;
+  }
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 10px;
+  height: 1.2em;
+  background-color: var(--terminal-green);
+  animation: blink 1s infinite;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* Standard CSS classes instead of @utility */
+.terminal-box {
+  border: 2px solid var(--terminal-green);
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  z-index: 10000;
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
 }

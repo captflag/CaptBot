@@ -9,7 +9,9 @@ langchain-google-genai
 langchain-community
 langchain-text-splitters
 chromadb
-# Google Gemini
+# Groq Integration
+groq
+# Google Gemini (Optional Fallback)
 google-generativeai
 # Utilities
 python-multipart

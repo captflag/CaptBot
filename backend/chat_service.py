@@ -1,19 +1,19 @@
 from rag_service import rag_service, ensure_preloaded
 from tools import available_tools
-import google.generativeai as genai
+from groq import Groq
 import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Configure Gemini
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+# Configure Groq
+client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
 class ChatService:
     def __init__(self):
         self.history = {} # Session-based history
-        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        self.model = "llama3-8b-8192" # High-speed default model
 
     async def generate_response(self, user_input: str, session_id: str = "default", image_data: dict = None):
         try:
@@ -35,26 +35,38 @@ class ChatService:
                 print(f"Tool execution error: {e}")
                 tool_result = f"Error executing tool: {str(e)}"
 
-            # 3. Build enhanced prompt with context and tool results
-            prompt_parts = [f"User question: {user_input}"]
+            # 3. Build system prompt and message list
+            system_prompt = "You are CaptBot, a professional AI executive assistant. Provide helpful, concise responses."
             
             if context:
-                prompt_parts.append(f"\nRelevant context from knowledge base:\n{context}")
+                system_prompt += f"\n\nRelevant context from knowledge base:\n{context}"
                 
+            messages = [
+                {"role": "system", "content": system_prompt},
+            ]
+
+            # Add tool result to the conversation if available
+            user_content = user_input
             if tool_result:
-                prompt_parts.append(f"\nTool execution result:\n{tool_result}")
-                
+                user_content += f"\n\n(Tool Tool Result: {tool_result})"
+            
             if image_data:
-                prompt_parts.append(f"\nUser uploaded an image: {image_data['filename']}")
+                user_content += f"\n\n(Note: User uploaded an image named {image_data['filename']}. Groq Llama 3 is text-only, so please acknowledge the file but explain you cannot see it yet.)"
+
+            messages.append({"role": "user", "content": user_content})
+
+            # 4. Generate response with Groq
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=1024,
+                top_p=1,
+                stream=False,
+                stop=None,
+            )
             
-            prompt_parts.append("\nPlease provide a helpful, concise response based on the above information.")
-            
-            full_prompt = "\n".join(prompt_parts)
-            
-            # 4. Generate response with Gemini
-            response = self.model.generate_content(full_prompt)
-            
-            return response.text
+            return completion.choices[0].message.content
             
         except Exception as e:
             import traceback
