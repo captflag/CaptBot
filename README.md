@@ -1,40 +1,38 @@
-# CaptBot 🤖
+# CaptBot 📟
 
-An intelligent AI chatbot built with **Next.js** and **FastAPI**, powered by Google's Gemini AI. CaptBot features a modern, responsive UI with support for multimodal inputs, RAG (Retrieval-Augmented Generation), and extensible tool integration.
+CaptBot is a high-performance AI executive assistant featuring a **Vintage CRT Terminal** aesthetic. It's built with **Next.js 16** and **FastAPI**, powered by the ultra-fast **Groq Llama 3** AI engine.
 
-![CaptBot Demo](captbot_demo.png)
+![CRT Terminal Interface](file:///C:/Users/divya/.gemini/antigravity/brain/57ce9a34-6a05-4005-b856-d9409a12401f/crt_theme_active_check_1766073648115.png)
 
 ## ✨ Features
 
-- **🎨 Modern UI**: Beautiful, responsive interface with glassmorphism effects and smooth animations
-- **🤖 AI-Powered**: Leverages Google Gemini 2.5 Flash for intelligent responses
-- **📁 Multimodal Support**: Upload and discuss images with the AI
-- **🔍 RAG Integration**: Retrieval-Augmented Generation for context-aware responses
-- **🛠️ Extensible Tools**: Built-in weather and web search capabilities
-- **⚡ Real-time Chat**: Fast, streaming responses with typing indicators
-- **🌐 Production Ready**: Environment-based configuration for easy deployment
+- **🎨 Vintage CRT UI**: High-fidelity retro terminal aesthetic with scanlines, flickering, and glowing green monochrome text.
+- **⚡ Ultra-Fast AI**: Leverages the Groq API (Llama 3-8B) for near-instantaneous response times.
+- **📁 Multimodal Support**: Acknowledgement for file uploads and image metadata processing.
+- **🔍 RAG Integration**: Context-aware responses using Retrieval-Augmented Generation via ChromaDB.
+- **🛠️ Extensible Tools**: Real-time web search and weather capabilities.
+- **🌐 Production Ready**: Optimized for Vercel deployment with dedicated serverless backend configuration.
 
 ## 🏗️ Architecture
 
 ### Frontend
-- **Framework**: Next.js 16 with TypeScript
-- **Styling**: Tailwind CSS with custom animations
-- **UI Components**: Framer Motion for smooth transitions
-- **Icons**: Lucide React
+- **Framework**: Next.js 16 (Turbopack)
+- **Styling**: Vanilla CSS with CRT shader effects
+- **Typography**: Strictly monospaced (`JetBrains Mono`)
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **AI Model**: Google Gemini 2.5 Flash Lite
-- **RAG**: LangChain with in-memory document storage
-- **Tools**: LangChain tool integration
+- **AI Model**: Groq Llama 3-8B
+- **RAG/Vector DB**: LangChain + ChromaDB
+- **Hosting**: Vercel Serverless Functions compatibility
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Python 3.8+
-- Google API Key ([Get one here](https://makersuite.google.com/app/apikey))
+- Python 3.10+
+- Groq API Key ([Get one here](https://console.groq.com/))
 
 ### Installation
 
@@ -44,126 +42,43 @@ An intelligent AI chatbot built with **Next.js** and **FastAPI**, powered by Goo
    cd CaptBot
    ```
 
-2. **Set up the Backend**
+2. **Backend Configuration**
    ```bash
    cd backend
    pip install -r requirements.txt
    ```
-
-3. **Configure Backend Environment**
-   
-   Create a `.env` file in the `backend` directory:
+   Create a `.env` file:
    ```env
-   GOOGLE_API_KEY=your_google_api_key_here
+   GROQ_API_KEY=your_groq_api_key_here
    ALLOWED_ORIGINS=http://localhost:3000
    ```
 
-4. **Set up the Frontend**
+3. **Frontend Configuration**
    ```bash
    cd ../frontend
    npm install
    ```
-
-5. **Configure Frontend Environment**
-   
-   Create a `.env.local` file in the `frontend` directory:
+   Create a `.env.local` file:
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:8000
    ```
 
 ### Running Locally
 
-1. **Start the Backend** (from the `backend` directory):
-   ```bash
-   uvicorn main:app --reload
-   ```
-   The API will be available at `http://localhost:8000`
+1. **Start the Backend**: `uvicorn main:app --reload`
+2. **Start the Frontend**: `npm run dev`
 
-2. **Start the Frontend** (from the `frontend` directory):
-   ```bash
-   npm run dev
-   ```
-   The app will be available at `http://localhost:3000`
+## 📦 Deployment to Vercel
 
-## 📦 Deployment
+### Backend (FastAPI)
+- Root Directory: `backend`
+- Framework Preset: `Other`
+- Required Env Vars: `GROQ_API_KEY`, `ALLOWED_ORIGINS`
 
-### Frontend (Vercel)
-
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Set the root directory to `frontend`
-4. Add environment variable:
-   - `NEXT_PUBLIC_API_URL`: Your backend API URL
-
-### Backend (Railway/Render/Fly.io)
-
-1. Deploy the `backend` directory
-2. Set environment variables:
-   - `GOOGLE_API_KEY`: Your Google API key
-   - `ALLOWED_ORIGINS`: Your frontend URL (e.g., `https://your-app.vercel.app`)
-3. Use the start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-
-## 🛠️ Configuration
-
-### Backend Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GOOGLE_API_KEY` | Google Gemini API key | Yes |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | Yes |
-
-### Frontend Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | Yes |
-
-## 📚 API Documentation
-
-Once the backend is running, visit `http://localhost:8000/docs` for interactive API documentation.
-
-### Main Endpoints
-
-- `GET /` - Health check
-- `GET /health` - Detailed health status
-- `POST /chat` - Send a message to the chatbot
-  - **Parameters**:
-    - `message` (string): User message
-    - `session_id` (string): Session identifier
-    - `file` (optional): Image file upload
-
-## 🎨 Features in Detail
-
-### RAG (Retrieval-Augmented Generation)
-CaptBot uses a simple in-memory RAG system to provide context-aware responses. The system:
-- Splits documents into chunks
-- Performs keyword-based retrieval
-- Enhances responses with relevant context
-
-### Tool Integration
-Built-in tools include:
-- **Weather Tool**: Get weather information for any city
-- **Web Search Tool**: Search the web for information
-
-Add more tools by extending the `tools.py` file.
-
-### Multimodal Support
-Upload images and ask questions about them. The AI can analyze and discuss visual content.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- Built with [Next.js](https://nextjs.org/)
-- Powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-- Backend framework: [FastAPI](https://fastapi.tiangolo.com/)
-- AI orchestration: [LangChain](https://langchain.com/)
+### Frontend (Next.js)
+- Root Directory: `frontend`
+- Framework Preset: `Next.js`
+- Required Env Vars: `NEXT_PUBLIC_API_URL` (Your deployed Backend URL)
 
 ---
 
