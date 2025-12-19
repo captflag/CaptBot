@@ -52,6 +52,11 @@ export default function ChatInterface() {
     }, []);
 
     const getApiUrl = () => {
+        // In production (non-localhost), we should use relative path to utilize Vercel rewrites
+        if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+            return '/api';
+        }
+
         let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').trim();
         if (url.endsWith('/')) {
             url = url.slice(0, -1);
@@ -180,7 +185,7 @@ export default function ChatInterface() {
                             <p className="text-[10px] uppercase opacity-70">
                                 {healthStatus === 'healthy' ? 'System_Active' :
                                     healthStatus === 'unreachable' ? 'System_Offline' : 'Checking_Pulse'}
-                                // Port: 8000
+                                {getApiUrl() !== '/api' && ' // Port: 8000'}
                             </p>
                         </div>
                     </div>
