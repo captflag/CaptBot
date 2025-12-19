@@ -1,31 +1,9 @@
 {
     "version": 2,
-    "builds": [
+    "rewrites": [
         {
-            "src": "api/**/*.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "frontend/package.json",
-            "use": "@vercel/next"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/api/health",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/api/chat",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/api",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/frontend/$1"
+            "source": "/api/:path*",
+            "destination": "/api/index.py"
         }
     ]
 }
