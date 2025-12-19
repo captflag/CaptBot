@@ -3,11 +3,5 @@ uvicorn
 python-dotenv
 pydantic
 httpx
-langchain
-langchain-google-genai
-langchain-community
-langchain-text-splitters
 groq
-google-generativeai
 python-multipart
-# Removed chromadb due to Vercel build constraints

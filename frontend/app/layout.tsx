@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased selection:bg-[var(--terminal-green)] selection:text-black">
+      <body className="antialiased selection:bg-[var(--terminal-green)] selection:text-black" suppressHydrationWarning>
         <div className="terminal-grid" />
         <div className="crt-overlay" />
         <div className="scanline" />

@@ -27,10 +27,10 @@ class ChatService:
                     city = "London"
                     if "in" in user_input:
                         city = user_input.split("in")[-1].strip()
-                    tool_result = available_tools[0].invoke(city)
+                    tool_result = available_tools[0](city)
                 elif "search" in user_input.lower():
                     query = user_input.replace("search", "").strip()
-                    tool_result = available_tools[1].invoke(query)
+                    tool_result = available_tools[1](query)
             except Exception as e:
                 print(f"Tool execution error: {e}")
                 tool_result = f"Error executing tool: {str(e)}"
