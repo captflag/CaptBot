@@ -17,8 +17,13 @@ export default function ChatInterface() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [hasMounted, setHasMounted] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setHasMounted(true);
+    }, []);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,6 +93,8 @@ export default function ChatInterface() {
             setIsLoading(false);
         }
     };
+
+    if (!hasMounted) return <div className="h-screen bg-black" />;
 
     return (
         <div className="flex flex-col h-screen bg-black text-[var(--terminal-green)] font-mono overflow-hidden relative">

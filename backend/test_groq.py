@@ -21,7 +21,7 @@ def test_groq():
                     "content": "Say 'Groq is active!'",
                 }
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
         )
         
         print("\n--- Groq API Test ---")

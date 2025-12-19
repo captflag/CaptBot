@@ -11,13 +11,19 @@ load_dotenv()
 # Configure CORS
 origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
+# If using wildcard, we must set allow_credentials to False or provide specific origins
+# For production, it's better to explicitly list origins.
+is_wildcard = "*" in origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[] if is_wildcard else origins,
+    allow_origin_regex=".*" if is_wildcard else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/")
 async def root():

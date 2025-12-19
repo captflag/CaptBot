@@ -13,7 +13,7 @@ client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 class ChatService:
     def __init__(self):
         self.history = {} # Session-based history
-        self.model = "llama3-8b-8192" # High-speed default model
+        self.model = "llama-3.1-8b-instant" # High-speed default model
 
     async def generate_response(self, user_input: str, session_id: str = "default", image_data: dict = None):
         try:
