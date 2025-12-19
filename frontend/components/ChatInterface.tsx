@@ -63,11 +63,18 @@ export default function ChatInterface() {
                 formData.append('file', currentFile);
             }
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            let apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').trim();
+            // Remove trailing slash if present
+            if (apiUrl.endsWith('/')) {
+                apiUrl = apiUrl.slice(0, -1);
+            }
+
+            console.log(`[DEBUG] Calling Backend: ${apiUrl}/chat`);
             const response = await fetch(`${apiUrl}/chat`, {
                 method: 'POST',
                 body: formData,
             });
+
 
             if (!response.ok) throw new Error('CONNECTION_FAILURE');
 
