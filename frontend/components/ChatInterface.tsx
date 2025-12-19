@@ -57,7 +57,7 @@ export default function ChatInterface() {
             return '/api';
         }
 
-        let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').trim();
+        let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').trim();
         if (url.endsWith('/')) {
             url = url.slice(0, -1);
         }

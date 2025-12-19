@@ -1,23 +1,21 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI(title="AI Chatbot API", version="0.1.0")
-
 import os
 from dotenv import load_dotenv
+from typing import Optional
+import traceback
 
 load_dotenv()
+
+app = FastAPI(title="AI Chatbot API", version="0.1.0")
 
 # Configure CORS
 origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
 if origins_raw == "*":
-    # In development, it's often safer to explicitly allow common origins 
-    # if wildcard causes issues with credentials/headers
     origins = ["*"]
 else:
     origins = [o.strip() for o in origins_raw.split(",") if o.strip()]
 
-# Add common development origins if not present
 dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 if "*" not in origins:
     for origin in dev_origins:
@@ -35,22 +33,18 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# API Router with /api prefix
+api_router = APIRouter(prefix="/api")
 
-@app.get("/")
+@api_router.get("/")
 async def root():
     return {"message": "AI Chatbot API is running"}
 
-@app.get("/health")
+@api_router.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
-from pydantic import BaseModel
-
-from fastapi import File, UploadFile, Form
-from typing import Optional
-import traceback
-
-@app.post("/chat")
+@api_router.post("/chat")
 async def chat_endpoint(
     message: str = Form(...),
     session_id: str = Form("default"),
@@ -58,11 +52,8 @@ async def chat_endpoint(
 ):
     try:
         print(f"Received message: {message}")
-        
-        # Import here to avoid circular imports if any, or just for now
         from chat_service import chat_service
         
-        # Process file if present (mock logic for now)
         image_data = None
         if file:
             content = await file.read()
@@ -74,3 +65,15 @@ async def chat_endpoint(
         print(f"ERROR in chat_endpoint: {e}")
         traceback.print_exc()
         return {"response": f"Error: {str(e)}"}
+
+# Include the router in the main app
+app.include_router(api_router)
+
+# Also keep the root health/root for legacy or direct access
+@app.get("/")
+async def legacy_root():
+    return await root()
+
+@app.get("/health")
+async def legacy_health():
+    return await health_check()
