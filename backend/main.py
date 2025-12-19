@@ -11,18 +11,28 @@ load_dotenv()
 # Configure CORS
 origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
 if origins_raw == "*":
+    # In development, it's often safer to explicitly allow common origins 
+    # if wildcard causes issues with credentials/headers
     origins = ["*"]
 else:
     origins = [o.strip() for o in origins_raw.split(",") if o.strip()]
+
+# Add common development origins if not present
+dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+if "*" not in origins:
+    for origin in dev_origins:
+        if origin not in origins:
+            origins.append(origin)
 
 is_wildcard = "*" in origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if is_wildcard else origins,
-    allow_credentials=not is_wildcard, # Credentials cannot be used with wildcard origin
+    allow_origins=origins,
+    allow_credentials=not is_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
