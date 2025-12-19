@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
@@ -33,18 +33,15 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# API Router with /api prefix
-api_router = APIRouter(prefix="/api")
-
-@api_router.get("/")
+@app.get("/")
 async def root():
     return {"message": "AI Chatbot API is running"}
 
-@api_router.get("/health")
+@app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
-@api_router.post("/chat")
+@app.post("/chat")
 async def chat_endpoint(
     message: str = Form(...),
     session_id: str = Form("default"),
@@ -65,15 +62,3 @@ async def chat_endpoint(
         print(f"ERROR in chat_endpoint: {e}")
         traceback.print_exc()
         return {"response": f"Error: {str(e)}"}
-
-# Include the router in the main app
-app.include_router(api_router)
-
-# Also keep the root health/root for legacy or direct access
-@app.get("/")
-async def legacy_root():
-    return await root()
-
-@app.get("/health")
-async def legacy_health():
-    return await health_check()
