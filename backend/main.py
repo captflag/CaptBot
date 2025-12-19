@@ -9,17 +9,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure CORS
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
+if origins_raw == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in origins_raw.split(",") if o.strip()]
 
-# If using wildcard, we must set allow_credentials to False or provide specific origins
-# For production, it's better to explicitly list origins.
 is_wildcard = "*" in origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[] if is_wildcard else origins,
-    allow_origin_regex=".*" if is_wildcard else None,
-    allow_credentials=True,
+    allow_origins=["*"] if is_wildcard else origins,
+    allow_credentials=not is_wildcard, # Credentials cannot be used with wildcard origin
     allow_methods=["*"],
     allow_headers=["*"],
 )

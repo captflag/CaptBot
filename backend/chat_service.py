@@ -36,7 +36,8 @@ class ChatService:
                 tool_result = f"Error executing tool: {str(e)}"
 
             # 3. Build system prompt and message list
-            system_prompt = "You are CaptBot, a professional AI executive assistant. Provide helpful, concise responses."
+            system_prompt = "You are CaptBot, a professional AI executive assistant. Provide helpful, concise responses. You are master of all knowledge."
+
             
             if context:
                 system_prompt += f"\n\nRelevant context from knowledge base:\n{context}"
@@ -59,7 +60,7 @@ class ChatService:
             completion = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.7,
+                temperature=0.5,
                 max_tokens=1024,
                 top_p=1,
                 stream=False,

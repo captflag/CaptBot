@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased selection:bg-[var(--terminal-green)] selection:text-black">
         <div className="terminal-grid" />
         <div className="crt-overlay" />

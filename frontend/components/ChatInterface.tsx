@@ -12,6 +12,26 @@ interface Message {
     timestamp: Date;
 }
 
+const Typewriter = ({ text, delay, onComplete }: { text: string; delay: number; onComplete?: () => void }) => {
+    const [currentText, setCurrentText] = useState('');
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        if (currentIndex < text.length) {
+            const timeout = setTimeout(() => {
+                setCurrentText((prevText) => prevText + text[currentIndex]);
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+            }, delay);
+
+            return () => clearTimeout(timeout);
+        } else if (onComplete) {
+            onComplete();
+        }
+    }, [currentIndex, delay, text, onComplete]);
+
+    return <>{currentText}</>;
+};
+
 export default function ChatInterface() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -21,9 +41,39 @@ export default function ChatInterface() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [healthStatus, setHealthStatus] = useState<'checking' | 'healthy' | 'unreachable'>('checking');
+    const [apiUrlLog, setApiUrlLog] = useState<string>('');
+
     useEffect(() => {
         setHasMounted(true);
+        checkHealth();
+        const interval = setInterval(checkHealth, 30000); // Check every 30s
+        return () => clearInterval(interval);
     }, []);
+
+    const getApiUrl = () => {
+        let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').trim();
+        if (url.endsWith('/')) {
+            url = url.slice(0, -1);
+        }
+        return url;
+    };
+
+    const checkHealth = async () => {
+        const url = getApiUrl();
+        try {
+            console.log(`[HEALTH_CHECK] Pinging: ${url}/health`);
+            const res = await fetch(`${url}/health`, { method: 'GET' });
+            if (res.ok) {
+                setHealthStatus('healthy');
+            } else {
+                setHealthStatus('unreachable');
+            }
+        } catch (err) {
+            console.error('[HEALTH_CHECK] Failed:', err);
+            setHealthStatus('unreachable');
+        }
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,20 +113,25 @@ export default function ChatInterface() {
                 formData.append('file', currentFile);
             }
 
-            let apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').trim();
-            // Remove trailing slash if present
-            if (apiUrl.endsWith('/')) {
-                apiUrl = apiUrl.slice(0, -1);
-            }
+            const apiUrl = getApiUrl();
+            const fullUrl = `${apiUrl}/chat`;
 
-            console.log(`[DEBUG] Calling Backend: ${apiUrl}/chat`);
-            const response = await fetch(`${apiUrl}/chat`, {
+            console.log('--- DEBUG: API REQUEST ---');
+            console.log(`URL: ${fullUrl}`);
+            console.log(`Method: POST`);
+            console.log(`Payload Keys: ${Array.from(formData.keys()).join(', ')}`);
+            setApiUrlLog(fullUrl);
+
+            const response = await fetch(fullUrl, {
                 method: 'POST',
                 body: formData,
             });
 
 
-            if (!response.ok) throw new Error('CONNECTION_FAILURE');
+            if (!response.ok) {
+                console.error(`[DEBUG] Request Failed with status: ${response.status} ${response.statusText}`);
+                throw new Error('CONNECTION_FAILURE');
+            }
 
             const data = await response.json();
 
@@ -89,6 +144,7 @@ export default function ChatInterface() {
 
             setMessages((prev) => [...prev, botMessage]);
         } catch (error) {
+            console.error('[DEBUG] Fetch Error:', error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -116,17 +172,35 @@ export default function ChatInterface() {
                             CaptBot.v1.0
                         </h1>
                         <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 bg-[var(--terminal-green)] animate-pulse" />
-                            <p className="text-[10px] uppercase opacity-70">System_Active // Port: 8000</p>
+                            <span className={clsx(
+                                "w-2 h-2 animate-pulse",
+                                healthStatus === 'healthy' ? 'bg-[var(--terminal-green)]' :
+                                    healthStatus === 'unreachable' ? 'bg-red-500' : 'bg-yellow-500'
+                            )} />
+                            <p className="text-[10px] uppercase opacity-70">
+                                {healthStatus === 'healthy' ? 'System_Active' :
+                                    healthStatus === 'unreachable' ? 'System_Offline' : 'Checking_Pulse'}
+                                // Port: 8000
+                            </p>
                         </div>
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-6 opacity-60 text-xs">
                     <p>MEM: 640KB</p>
                     <p>SECURE: YES</p>
+                    <button onClick={checkHealth} className="hover:text-white transition-colors uppercase cursor-pointer">
+                        [Re-Ping]
+                    </button>
                     <Power className="w-4 h-4 cursor-pointer hover:text-white transition-colors" />
                 </div>
             </header>
+
+            {/* Debug Banner if Unreachable */}
+            {healthStatus === 'unreachable' && (
+                <div className="bg-red-900/20 border-b border-red-500/50 p-2 text-[10px] text-red-500 text-center uppercase tracking-widest">
+                    WARNING: Backend Unreachable at {getApiUrl()} // Check CORS and NEXT_PUBLIC_API_URL
+                </div>
+            )}
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-none relative">
@@ -160,7 +234,15 @@ export default function ChatInterface() {
                                     message.role === 'user' ? 'border-l-4 border-l-[var(--terminal-amber)]' : 'border-l-4 border-l-[var(--terminal-green)]'
                                 )}>
                                     <p className="whitespace-pre-wrap leading-relaxed text-[17px] drop-shadow-[0_0_5px_rgba(0,255,65,0.3)]">
-                                        {message.content}
+                                        {message.role === 'assistant' ? (
+                                            <Typewriter
+                                                text={message.content}
+                                                delay={20}
+                                                onComplete={scrollToBottom}
+                                            />
+                                        ) : (
+                                            message.content
+                                        )}
                                     </p>
                                 </div>
                             </motion.div>

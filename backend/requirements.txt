@@ -3,16 +3,11 @@ uvicorn
 python-dotenv
 pydantic
 httpx
-# AI & LangChain
 langchain
 langchain-google-genai
 langchain-community
 langchain-text-splitters
-# chromadb removed due to Vercel build issues
-
-# Groq Integration
 groq
-# Google Gemini (Optional Fallback)
 google-generativeai
-# Utilities
 python-multipart
+# Removed chromadb due to Vercel build constraints
