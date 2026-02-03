@@ -1,0 +1,9 @@
+{
+  "name": "CaptBot",
+  "description": "Next-generation AI Orchestrator designed for 2026 standards, featuring GenUI synthesis, proactive agency, and deep reasoning.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

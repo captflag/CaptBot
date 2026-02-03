@@ -1,0 +1,8 @@
+.env.local
+.env
+node_modules
+dist
+.vscode
+.git
+README.md
+C:\Users\divya\.gemini\antigravity\brain
