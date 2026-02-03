@@ -28,6 +28,8 @@ Deep dive into the Semantic Chunking, Local Similarity Search, and Context Injec
 
 ## 🚀 Key Features
 
+- **⚡ Low Latency Architecture**: Optimized for high-speed processing, ensuring near-instantaneous query-to-response cycles.
+- **🛡️ Integrated Guardrails**: Built-in `GuardrailService` that enforces safety, prevents prompt injection, and manages input complexity in real-time.
 - **Local Vector Engine**: Sub-millisecond similarity search using in-memory cosine math.
 - **Deeper Research Mode**: Intelligent task decomposition with a dedicated "Thinking Budget."
 - **Multi-Modal Support**: Native handling of image and file attachments for contextual analysis.
