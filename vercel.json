@@ -1,4 +1,11 @@
 {
-    "version": 2,
-    "framework": "vite"
+  "version": 2,
+  "framework": "vite",
+  "regions": ["bom1"],
+  "functions": {
+    "api/chat.ts": { "maxDuration": 120 },
+    "api/embed.ts": { "maxDuration": 30 },
+    "api/data.ts": { "maxDuration": 60 },
+    "api/usage.ts": { "maxDuration": 10 }
+  }
 }

@@ -1,32 +1,61 @@
 {
   "name": "captbot",
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@google/genai": "^1.35.0",
-    "react-dom": "^19.2.3",
-    "react": "^19.2.3",
-    "framer-motion": "^11.11.11",
-    "lucide-react": "^0.460.0",
+    "@anthropic-ai/sdk": "^0.124.0",
+    "@clerk/backend": "^3.17.2",
+    "@clerk/react": "^6.15.2",
+    "@google/genai": "^2.21.0",
+    "@gsap/react": "^2.1.2",
+    "@huggingface/transformers": "^4.2.0",
+    "@mozilla/readability": "^0.6.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.4",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.4",
-    "react-markdown": "9.0.1",
-    "remark-gfm": "4.0.0",
-    "recharts": "2.12.7"
+    "dexie": "^4.4.5",
+    "dexie-react-hooks": "^4.4.0",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.44.0",
+    "mammoth": "^1.12.2",
+    "minisearch": "^7.2.0",
+    "motion": "^13.2.0",
+    "pdfjs-dist": "^6.3.289",
+    "postgres": "^3.4.9",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-is": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.10.1",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.6.0",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/turndown": "^5.0.6",
+    "@vitejs/plugin-react": "^6.1.1",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }
