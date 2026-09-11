@@ -1,0 +1,265 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--app-font, 'Inter'), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f9fafb;
+  color: #111827;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background: #050505;
+  color: #e5e7eb;
+}
+
+::selection {
+  background: #8b5cf6;
+  color: white;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(0 0 0 / 0.12);
+  border-radius: 999px;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.12);
+}
+
+/* Inline citation marker rendered from [n] in answers. */
+.cite-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.1rem;
+  padding: 0 0.3rem;
+  margin: 0 0.08rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 0.12em;
+  background: rgb(139 92 246 / 0.12);
+  color: #6d28d9;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+.cite-chip:hover {
+  background: rgb(139 92 246 / 0.26);
+}
+.dark .cite-chip {
+  color: #c4b5fd;
+  background: rgb(139 92 246 / 0.2);
+}
+
+mark.source-highlight {
+  background: rgb(139 92 246 / 0.16);
+  color: inherit;
+  border-radius: 3px;
+  box-shadow: 0 0 0 3px rgb(139 92 246 / 0.16);
+}
+.dark mark.source-highlight {
+  background: rgb(139 92 246 / 0.28);
+  box-shadow: 0 0 0 3px rgb(139 92 246 / 0.28);
+}
+
+/* ── Login page motion ───────────────────────────────────────────────────────
+   Headline lines rise out of masks, the card settles in, dividers draw themselves.
+   Each element reads its stagger from --d. In the components layer so utilities win. */
+@layer components {
+  .login-root {
+    --login-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .login-enter {
+    animation: login-enter 700ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .login-card {
+    animation: login-card 850ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .login-line {
+    display: block;
+    overflow: hidden;
+    padding: 0.06em 0.1em 0.12em;
+    margin: -0.06em -0.1em -0.12em;
+  }
+  .login-rise {
+    display: block;
+    animation: login-rise 1000ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .login-rule-x {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    pointer-events: none;
+    transform-origin: left;
+    animation: login-scale-x 900ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .login-rule-y {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    pointer-events: none;
+    transform-origin: top;
+    animation: login-scale-y 1000ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .login-underline {
+    position: relative;
+  }
+  .login-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0.1em;
+    bottom: 0.02em;
+    height: 0.09em;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.3;
+    transform-origin: left;
+    animation: login-scale-x 800ms var(--login-ease) var(--d, 0ms) both;
+  }
+  /* The in-app citation chip, sized to the headline. */
+  .login-cite {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5em;
+    height: 1.4em;
+    margin-left: 0.35em;
+    padding: 0 0.35em;
+    border-radius: 0.4em;
+    font-size: 0.3em;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    vertical-align: 1.5em;
+    background: rgb(139 92 246 / 0.14);
+    color: #6d28d9;
+    animation: login-pop 500ms var(--login-ease) var(--d, 0ms) both;
+  }
+  .dark .login-cite {
+    background: rgb(139 92 246 / 0.22);
+    color: #c4b5fd;
+  }
+  .login-dotgrid {
+    background-image: radial-gradient(circle, rgb(17 24 39 / 0.08) 1px, transparent 1.4px);
+    background-size: 16px 16px;
+    background-position: 8px 8px;
+  }
+  .dark .login-dotgrid {
+    background-image: radial-gradient(circle, rgb(255 255 255 / 0.07) 1px, transparent 1.4px);
+  }
+  .login-marquee {
+    animation: login-marquee 45s linear infinite;
+  }
+  .login-ticker:hover .login-marquee {
+    animation-play-state: paused;
+  }
+
+  /* Pixel critter: everything moves in stepped, 8-bit frames. */
+  .critter-caret {
+    animation: critter-blink 1s steps(1) infinite;
+  }
+  .critter-card {
+    animation: critter-drop 360ms steps(4) calc(var(--i, 0) * 90ms) both;
+  }
+  .critter-flag {
+    transform-origin: bottom;
+    animation: critter-flag 400ms steps(4) both;
+  }
+
+  @keyframes login-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes login-card {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+  }
+  @keyframes login-rise {
+    from {
+      transform: translateY(110%);
+    }
+  }
+  @keyframes login-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+  @keyframes login-scale-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes login-scale-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes login-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes critter-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes critter-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes critter-flag {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-root *,
+    .login-root *::before,
+    .login-root *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
