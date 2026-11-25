@@ -14,6 +14,10 @@ function devApi(): Plugin {
     name: 'captbot-dev-api',
     apply: 'serve',
     configureServer(server) {
+      // On Windows a folder can be briefly locked while a file in it is saved, and the watcher's
+      // scan then fails with EBUSY. Unhandled, that error ends the dev server; the next change
+      // is picked up normally, so a warning is enough.
+      server.watcher.on('error', (err) => server.config.logger.warn(`File watcher: ${err instanceof Error ? err.message : String(err)}`));
       const env = loadEnv(server.config.mode, server.config.root, '');
       for (const [key, value] of Object.entries(env)) {
         if (!key.startsWith('VITE_') && process.env[key] === undefined) process.env[key] = value;

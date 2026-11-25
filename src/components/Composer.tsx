@@ -103,13 +103,19 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
     const el = textRef.current;
     if (!el) return;
     let width = -1;
+    let frame = 0;
     const observer = new ResizeObserver(() => {
       if (el.clientWidth === width) return;
       width = el.clientWidth;
-      fit();
+      // Resizing inside the observer's own callback trips the browser's "ResizeObserver loop" error.
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
     });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [fit]);
 
   // A message that is just "/" plus a word is a command being typed, not a question.
