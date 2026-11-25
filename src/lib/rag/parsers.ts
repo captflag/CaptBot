@@ -1,5 +1,7 @@
 import { Readability } from '@mozilla/readability';
+import type { PDFPageProxy } from 'pdfjs-dist';
 import TurndownService from 'turndown';
+import type { ImageAttachment } from '../types';
 import { TEXT_EXTENSION_SET } from './fileTypes';
 
 export interface ParsedDoc {
@@ -19,9 +21,12 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
-export async function parseFile(file: File): Promise<ParsedDoc> {
+/** Reads the text off scanned page images; resolves to one string per image, in order. */
+export type PageOcr = (images: ImageAttachment[]) => Promise<string[]>;
+
+export async function parseFile(file: File, ocr?: PageOcr): Promise<ParsedDoc> {
   const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : '';
-  if (ext === 'pdf' || file.type === 'application/pdf') return parsePdf(await file.arrayBuffer());
+  if (ext === 'pdf' || file.type === 'application/pdf') return parsePdf(await file.arrayBuffer(), ocr);
   if (ext === 'docx') return parseDocx(await file.arrayBuffer());
   if (ext === 'html' || ext === 'htm' || file.type === 'text/html') return parseHtml(await file.text());
   if (ext === 'csv' || ext === 'tsv') {
@@ -46,7 +51,25 @@ function cleanPdfPage(raw: string): string {
     .trim();
 }
 
-export async function parsePdf(data: ArrayBuffer): Promise<ParsedDoc> {
+// ponytail: one model call per 4 scanned pages, with no wait when a rate limit is hit. Fine for
+// reports and contracts; a scanned book on a limited key wants bigger batches or a pause-and-resume.
+const OCR_BATCH = 4;
+
+/** Renders a page as a JPEG about 1600 px on its long side: enough for small print, small enough to send. */
+async function pageImage(page: PDFPageProxy, index: number): Promise<ImageAttachment> {
+  const base = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({ scale: Math.min(2, 1600 / Math.max(base.width, base.height)) });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  await page.render({ canvas, viewport }).promise;
+  const data = canvas.toDataURL('image/jpeg', 0.8).split(',')[1] ?? '';
+  canvas.width = canvas.height = 0; // release the bitmap
+  return { name: `page-${index + 1}.jpg`, mimeType: 'image/jpeg', data };
+}
+
+/** Pages without a text layer (scans) are read with `ocr` when it is given. */
+export async function parsePdf(data: ArrayBuffer, ocr?: PageOcr): Promise<ParsedDoc> {
   const pdfjs = await import('pdfjs-dist');
   const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -55,6 +78,13 @@ export async function parsePdf(data: ArrayBuffer): Promise<ParsedDoc> {
   const pdf = await task.promise;
   try {
     const pages: string[] = [];
+    const scanned: number[] = [];
+    const images: ImageAttachment[] = [];
+    const readScanned = async () => {
+      if (!ocr || !images.length) return;
+      const texts = await ocr(images.splice(0));
+      scanned.splice(0).forEach((p, j) => (pages[p] = normalizeText(texts[j] ?? '')));
+    };
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -63,8 +93,14 @@ export async function parsePdf(data: ArrayBuffer): Promise<ParsedDoc> {
         if ('str' in item) raw += item.str + (item.hasEOL ? '\n' : '');
       }
       pages.push(cleanPdfPage(raw));
+      if (ocr && !pages[i - 1]) {
+        scanned.push(i - 1);
+        images.push(await pageImage(page, i - 1));
+        if (images.length >= OCR_BATCH) await readScanned();
+      }
       page.cleanup();
     }
+    await readScanned();
     const pageOffsets: number[] = [];
     let text = '';
     for (const page of pages) {
@@ -72,7 +108,7 @@ export async function parsePdf(data: ArrayBuffer): Promise<ParsedDoc> {
       pageOffsets.push(text.length);
       text += page;
     }
-    if (!text.trim()) throw new Error('This PDF has no extractable text. It may be a scanned image; run OCR on it first.');
+    if (!text.trim()) throw new Error(ocr ? 'No text could be read from this PDF, even from its page images.' : 'This PDF has no extractable text. It may be a scanned image; run OCR on it first.');
     const meta = await pdf.getMetadata().catch(() => null);
     const title = (meta?.info as { Title?: string } | undefined)?.Title?.trim() || undefined;
     return { text, pageOffsets, title, mimeType: 'application/pdf' };
@@ -137,7 +173,7 @@ export function parseHtml(html: string): ParsedDoc {
 
 // ---------- URL ----------
 
-export async function fetchUrl(url: string, readerProxy: string, signal?: AbortSignal): Promise<ParsedDoc> {
+export async function fetchUrl(url: string, readerProxy: string, signal?: AbortSignal, ocr?: PageOcr): Promise<ParsedDoc> {
   let res: Response;
   try {
     res = await fetch(url, { signal });
@@ -151,7 +187,7 @@ export async function fetchUrl(url: string, readerProxy: string, signal?: AbortS
   }
   if (!res.ok) throw new Error(`Fetching the page failed (HTTP ${res.status}).`);
   const type = res.headers.get('content-type') ?? '';
-  if (type.includes('pdf')) return parsePdf(await res.arrayBuffer());
+  if (type.includes('pdf')) return parsePdf(await res.arrayBuffer(), ocr);
   const body = await res.text();
   if (type.includes('html') || /^\s*<(!doctype|html)/i.test(body)) return parseHtml(body);
   return { text: normalizeText(body), mimeType: type.split(';')[0] || 'text/plain' };

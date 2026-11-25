@@ -58,12 +58,13 @@ const PHASES: Record<AnswerPhase, { title: string; frames: number[][]; duration:
  * really in (it is not a timed script): the chat view derives the phase from
  * retrieval progress.
  */
-export function AnswerLoader({ phase }: { phase: AnswerPhase }) {
-  const { title, frames, duration } = PHASES[phase];
+export function AnswerLoader({ phase, label }: { phase: AnswerPhase; label?: string }) {
+  const { frames, duration } = PHASES[phase];
+  const title = label ?? PHASES[phase].title;
   return (
     <div role="status" aria-live="polite" aria-label={title} className="w-fit">
       {/* One looping item per phase (repeatCount -1); remounting on phase change lets DotFlow re-measure its label. */}
-      <DotFlow key={phase} items={[{ title, frames, duration, repeatCount: -1 }]} />
+      <DotFlow key={`${phase}:${title}`} items={[{ title, frames, duration, repeatCount: -1 }]} />
     </div>
   );
 }

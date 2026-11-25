@@ -1,12 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Bot, Eye, EyeOff, HardDrive, LibraryBig, LoaderCircle, Palette, Plug, RefreshCw, Trash } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { profileKey } from '../lib/auth/profile';
 import { serverTierAvailable } from '../lib/auth/session';
-import { db } from '../lib/db';
+import { db, uid } from '../lib/db';
+// The connector helpers are small; the MCP client library itself still loads on first use.
+import { testConnector, type McpTool } from '../lib/mcp';
 import { reindexStale } from '../lib/rag/ingest';
 import { errorText } from '../lib/rag/json';
-import { CHAT_PRESETS, EMBEDDING_PRESETS, updateSettings, useSettings, type Settings } from '../lib/settings';
+import { CHAT_PRESETS, EMBEDDING_PRESETS, hasChatKey, updateSettings, useSettings, type McpConnector, type Settings } from '../lib/settings';
 import { resetSyncState, syncNow, useSyncStatus, type SyncStatus } from '../lib/sync/engine';
 import { useActiveEmbeddingKey, useStorageMode } from '../lib/sync/mode';
 import { remote } from '../lib/sync/remote';
@@ -55,6 +57,168 @@ function SecretInput({ value, onChange, placeholder }: { value: string; onChange
   );
 }
 
+/** Plain http only to this machine: anywhere else the access token would cross the network unencrypted. */
+function connectorUrlProblem(raw: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return 'Enter the server’s full URL, starting with https://';
+  }
+  if (url.protocol === 'https:') return null;
+  if (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return null;
+  return 'Use an https:// URL. Plain http is only allowed for a server on this computer (localhost).';
+}
+
+const updateConnector = (id: string, patch: Partial<McpConnector>) =>
+  updateSettings((s) => ({ ...s, connectors: s.connectors.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+
+type TestState = { state: 'testing' } | { state: 'ok'; tools: McpTool[] } | { state: 'error'; message: string };
+
+function ConnectorRow({ connector: c, test, onTest }: { connector: McpConnector; test?: TestState; onTest: () => void }) {
+  return (
+    <li className="space-y-2 rounded-xl border border-line p-3">
+      <Toggle checked={c.enabled} onChange={(enabled) => updateConnector(c.id, { enabled })} label={c.name} hint={<span className="font-mono break-all">{c.url}</span>} />
+      {test && (
+        <div
+          className={cn(
+            'rounded-lg px-2.5 py-2 text-xs leading-relaxed',
+            test.state === 'error' ? 'bg-red-500/10 text-red-700 dark:text-red-300' : 'bg-canvas text-muted',
+          )}
+        >
+          {test.state === 'testing' && 'Connecting…'}
+          {test.state === 'error' && test.message}
+          {test.state === 'ok' &&
+            (test.tools.length ? (
+              <>
+                <b className="text-ink">{plural(test.tools.length, 'tool')}:</b> {test.tools.map((t) => t.name).join(', ')}
+              </>
+            ) : (
+              'Connected, but this server offers no tools.'
+            ))}
+        </div>
+      )}
+      {c.alwaysAllow.length > 0 && (
+        <p className="text-xs text-muted">
+          Runs without asking: {c.alwaysAllow.join(', ')}.{' '}
+          <button type="button" onClick={() => updateConnector(c.id, { alwaysAllow: [] })} className="font-semibold text-ink underline underline-offset-2">
+            Ask every time again
+          </button>
+        </p>
+      )}
+      <div className="flex gap-1.5">
+        <button type="button" onClick={onTest} disabled={test?.state === 'testing'} className={buttonClass}>
+          {test?.state === 'testing' ? <LoaderCircle size={13} className="animate-spin" /> : <Plug size={13} />} Test connection
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm(`Remove the connector “${c.name}”?`)) updateSettings((s) => ({ ...s, connectors: s.connectors.filter((x) => x.id !== c.id) }));
+          }}
+          className={cn(buttonClass, 'text-red-600 dark:text-red-400')}
+        >
+          <Trash size={13} /> Remove
+        </button>
+      </div>
+    </li>
+  );
+}
+
+/** Remote MCP servers whose tools answers may call. */
+function ConnectorsSection({ settings: s }: { settings: Settings }) {
+  const [tests, setTests] = useState<Record<string, TestState>>({});
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [token, setToken] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const test = async (c: McpConnector) => {
+    setTests((t) => ({ ...t, [c.id]: { state: 'testing' } }));
+    try {
+      const tools = await testConnector(c);
+      setTests((t) => ({ ...t, [c.id]: { state: 'ok', tools } }));
+    } catch (err) {
+      setTests((t) => ({ ...t, [c.id]: { state: 'error', message: errorText(err) } }));
+    }
+  };
+
+  const add = () => {
+    const bad = connectorUrlProblem(url);
+    if (bad) {
+      setProblem(bad);
+      return;
+    }
+    const clean = url.trim();
+    const connector: McpConnector = {
+      id: uid(),
+      name: name.trim() || new URL(clean).hostname,
+      url: clean,
+      token: token.trim(),
+      enabled: true,
+      alwaysAllow: [],
+    };
+    updateSettings((x) => ({ ...x, connectors: [...x.connectors, connector] }));
+    setName('');
+    setUrl('');
+    setToken('');
+    setProblem(null);
+    void test(connector);
+  };
+
+  return (
+    <Section
+      title="Connectors (MCP)"
+      description="Let answers call tools on remote MCP servers, such as a database, a ticket tracker or a search service. Only servers reached over a URL that allow requests from a browser work. Every tool call asks you first unless you allow that tool always. Connector details, tokens included, stay in this browser and are never synced."
+    >
+      {!hasChatKey(s) && (
+        <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          Connector tools work with your own API key. On the free tier, answers don’t use them.
+        </p>
+      )}
+      {s.connectors.length > 0 && (
+        <ul className="space-y-2">
+          {s.connectors.map((c) => (
+            <ConnectorRow key={c.id} connector={c} test={tests[c.id]} onTest={() => void test(c)} />
+          ))}
+        </ul>
+      )}
+      <form
+        className="space-y-3 rounded-xl border border-dashed border-line p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+      >
+        <div className="text-xs font-semibold text-ink">Add a connector</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Name">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Issue tracker" className={inputClass} />
+          </Field>
+          <Field label="Server URL">
+            <input
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setProblem(null);
+              }}
+              placeholder="https://example.com/mcp"
+              spellCheck={false}
+              className={cn(inputClass, 'font-mono text-xs')}
+            />
+          </Field>
+        </div>
+        <Field label="Access token (optional)" hint="Sent to this server only, as “Authorization: Bearer …”. Servers that need a sign-in page (OAuth) aren’t supported yet.">
+          <SecretInput value={token} onChange={setToken} placeholder="Leave empty if the server needs none" />
+        </Field>
+        {problem && <p className="text-xs text-red-600 dark:text-red-400">{problem}</p>}
+        <button type="submit" disabled={!url.trim()} className={buttonClass}>
+          <Plug size={13} /> Add and test
+        </button>
+      </form>
+    </Section>
+  );
+}
+
 /** Number field that only commits a clamped value on blur, so typing isn't fought mid-edit. */
 function NumberInput({ value, min, max, step = 1, onChange }: { value: number; min: number; max: number; step?: number; onChange: (v: number) => void }) {
   const [draft, setDraft] = useState(String(value));
@@ -90,8 +254,20 @@ function syncLine(s: SyncStatus): string {
   return `Synced ${minutes < 1 ? 'just now' : `${minutes} min ago`}${waiting}${refused}`;
 }
 
+const SETTINGS_TABS = [
+  { id: 'model', label: 'Model', icon: Bot },
+  { id: 'knowledge', label: 'Knowledge', icon: LibraryBig },
+  { id: 'connectors', label: 'Connectors', icon: Plug },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'data', label: 'Your data', icon: HardDrive },
+] as const;
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]['id'];
+
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const s = useSettings();
+  // Kept while the dialog is closed, so it reopens on the tab you were using.
+  const [tab, setTab] = useState<SettingsTab>('model');
   const storage = useStorageMode();
   const sync = useSyncStatus();
   const key = useActiveEmbeddingKey();
@@ -121,7 +297,29 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Settings" className="max-w-2xl">
+    <Modal open={open} onClose={onClose} title="Settings" className="max-w-3xl">
+      <div className="flex flex-col sm:h-[min(640px,calc(90vh-56px))] sm:flex-row">
+        <nav role="tablist" aria-label="Settings sections" aria-orientation="vertical" className="scrollbar-thin flex shrink-0 gap-1 overflow-x-auto border-b border-line p-2 sm:w-48 sm:flex-col sm:border-r sm:border-b-0 sm:p-3">
+          {SETTINGS_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold transition-colors',
+                tab === t.id ? 'bg-accent-500 text-gray-950' : 'text-muted hover:bg-canvas hover:text-ink',
+              )}
+            >
+              <t.icon size={15} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div role="tabpanel" key={tab} className="anim-fade scrollbar-thin min-w-0 flex-1 overflow-y-auto">
+      {tab === 'model' && (
+        <>
       <Section title="Chat model" description="Requests go straight from your browser to the provider you pick.">
         <Field label="Provider">
           <select
@@ -186,6 +384,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </div>
       </Section>
 
+        </>
+      )}
+      {tab === 'knowledge' && (
+        <>
       {storage.server ? (
         <Section
           title="Embeddings"
@@ -297,6 +499,11 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </Field>
       </Section>
 
+        </>
+      )}
+      {tab === 'connectors' && <ConnectorsSection settings={s} />}
+      {tab === 'appearance' && (
+        <>
       <Section title="Profile & appearance">
         <Field label="Your name" hint="Used in the greeting and so CaptBot knows how to address you.">
           <input value={s.displayName} onChange={(e) => updateSettings({ displayName: e.target.value })} className={inputClass} />
@@ -310,7 +517,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </Field>
           <Field label="Font">
             <select value={s.font} onChange={(e) => updateSettings({ font: e.target.value })} className={inputClass}>
-              <option value="Inter">Inter</option>
+              <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
               <option value="Martian Grotesk">Martian Grotesk</option>
               <option value="Redaction">Redaction</option>
             </select>
@@ -318,6 +525,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </div>
       </Section>
 
+        </>
+      )}
+      {tab === 'data' && (
+        <>
       <Section
         title="Your data"
         description={
@@ -356,6 +567,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </button>
         </div>
       </Section>
+        </>
+      )}
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -1,13 +1,17 @@
 # CaptBot
 
-A private research assistant that answers from **your own documents** and cites every claim. Run it on its own and everything stays in your browser. Sign in on a deployment with a database and your knowledge base lives in your account and syncs across your devices. Either way, only a question and the passages retrieved for it are sent to the model that answers.
+A private research assistant that answers from **your own documents** and cites every claim. Run it on its own and everything stays in your browser. Sign in on a deployment with a database and your knowledge base lives in your account and syncs across your devices. Either way, only a question and the passages retrieved for it are sent to the model that answers, plus the page images of any scanned PDF you add, which that model reads.
 
 ## What it does
 
-- **Knowledge base.** Add PDFs, Word documents, web pages, Markdown, text, CSV and JSON. Each is parsed, chunked, embedded and indexed.
+- **Knowledge base.** Add PDFs (scanned ones too), Word documents, web pages, Markdown, text, CSV and JSON. Each is parsed, chunked, embedded and indexed.
 - **Cited answers.** Answers cite retrieved passages inline, like `[1][3]`. Click a citation to open the source with the passage highlighted (with page numbers for PDFs).
 - **Honest when the documents don't know.** Passages the reranker judges irrelevant are left out, so a question your documents don't cover gets "that's not in your documents" rather than loosely related excerpts.
-- **Deep Research.** Plans 3–5 sub-questions, searches your documents for all of them in parallel, pools the evidence and writes a structured report with a summary, themed sections and gaps.
+- **Deep Research.** Plans 3–5 sub-questions, searches your documents for all of them in parallel, checks the evidence for gaps and searches once more for what's missing, then pools it all and writes a structured report with a summary, themed sections and gaps.
+- **Chats you can go back to.** Search past chats by title or message text. Edit a message you sent to ask it again; the replies after it are replaced.
+- **A three-pane workspace.** An icon rail, then your chats (with a preview of each, search, and a Saved tab for prompts you keep), the conversation in the middle, and the evidence for an answer docked on the right with the cited passage highlighted. Knowledge is a full page: a sortable table of every document, collections down the side, and bulk actions. Light and dark themes switch from the rail. On a phone the rail becomes a bottom bar and the panes slide over the chat.
+- **Quick ways around.** Ctrl+K (or the search button) opens one box that finds chats by title or anything said in them, documents and saved prompts, and runs common actions. Typing `/` in the message box lists commands (`/research`, `/web`) and your saved prompts. Chats can be starred to stay on top and filtered by collection. Press `?` for every keyboard shortcut.
+- **Connectors (MCP).** Add remote MCP servers in Settings and answers can call their tools: a database, a ticket tracker, a search service. Each call shows in the answer with its input and result, and asks you first unless you allowed that tool always. Works with your own API key on Gemini, Claude and OpenAI-compatible models.
 - **Collections.** Group documents into collections and scope any chat to one or more of them.
 - **Backups and knowledge packs.** Export everything, or a single collection, to one `.captbot` file and import it on another device or share it.
 - **Bring your own model.** Use Gemini, Claude, OpenAI or any OpenAI-compatible server (Ollama, LM Studio, OpenRouter). In the browser, embeddings and reranking can run fully on-device.
@@ -43,7 +47,7 @@ The indexes live in the browser (local mode) or in Postgres (server storage). Ev
 
 | Stage | How it works |
 | --- | --- |
-| Parsing | pdf.js extracts text and keeps page offsets. mammoth converts DOCX to HTML, and Readability + Turndown convert HTML to Markdown so headings survive. Tables in Word files and web pages become Markdown tables, so every row keeps its column names. CSV and JSON records become one self-describing `column: value` line per row. |
+| Parsing | pdf.js extracts text and keeps page offsets. PDF pages with no text layer (scans) are rendered to images and transcribed to Markdown by the fast chat model, four pages per call, so they keep their page numbers. mammoth converts DOCX to HTML, and Readability + Turndown convert HTML to Markdown so headings survive. Tables in Word files and web pages become Markdown tables, so every row keeps its column names. CSV and JSON records become one self-describing `column: value` line per row. |
 | Chunking | Markdown headings define sections that chunks never cross. Text is packed sentence by sentence to about 300 tokens, preferring paragraph breaks, with about 50 tokens of sentence-aligned overlap. Tables are never cut mid-row: one that fits stays whole, and a bigger one is split between rows with every part repeating the header. Sizes are counted in tokens, so Chinese, Japanese and Korean text gets proportionally shorter chunks. Every chunk stores its exact character span, heading path and page. |
 | Embedding | Each chunk is embedded with a contextual header (`document › section`). In the browser, vectors are L2-normalised and tagged with the model that produced them, so a model change never mixes vector spaces. With server storage, every document is embedded on the server with `gemini-embedding-2` (768 dimensions), so all of an account's devices search one vector space. |
 | Retrieval | Semantic and keyword search, fused with reciprocal rank fusion (k = 60). In the browser: exact cosine search over an in-memory `Float32Array` plus BM25 (MiniSearch, with prefix and fuzzy matching). On the server: pgvector HNSW search (with iterative scans, so the per-account filter doesn't cost recall) plus Postgres full-text search. Keyword search catches the names, codes and numbers that embeddings blur. |
@@ -74,11 +78,23 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000, click **Settings**, and paste an API key for the provider you want. Then open **Knowledge** in the sidebar, add some documents, and ask a question.
+Open http://localhost:3000, click **Settings**, and paste an API key for the provider you want. Then open **Knowledge** in the navigation rail, add some documents, and ask a question.
 
 This is local mode: with no Clerk key configured there is no sign-in, no free tier and no server storage, and no `.env` file is needed. To run with accounts and sync, see [Accounts, storage and limits](#accounts-storage-and-limits).
 
 To run fully offline with Ollama, set the chat provider and embeddings to **OpenAI-compatible**, point them at `http://localhost:11434/v1`, and start Ollama with `OLLAMA_ORIGINS` allowing your site's origin.
+
+### Connectors (MCP)
+
+Open **Settings → Connectors (MCP)**, give the server a name, paste its URL (for example `https://example.com/mcp`) and an access token if it needs one, and press **Add and test**. The test lists the tools it found. In a chat, the **Tools** switch under the message box (or `/tools`) turns them on or off for that message.
+
+What works in this first version:
+
+- Remote servers over Streamable HTTP, and older HTTP+SSE servers.
+- Servers that allow requests from a browser (CORS). Ones that don't need a proxy, which isn't built yet.
+- Bearer-token auth. Servers that need a sign-in page (OAuth) aren't supported yet.
+- Your own API key. The free tier runs on the server's key, which has no route to connectors yet.
+- With Gemini, tools are left out of messages that also use web search.
 
 ## Deploying
 
@@ -117,7 +133,7 @@ flowchart LR
   - 60 knowledge-base searches a minute and 1,000 a day (server storage only);
   - 120 saves a minute and 5,000 a day (server storage only: sync uploads, new documents and their text).
 
-  Daily allowances reset at 00:00 UTC. The sidebar and Settings show what's left. With server storage each account can also hold up to 100 million characters of document text (`STORAGE_MAX_CHARS`).
+  Daily allowances reset at 00:00 UTC. The chat list and Settings show what's left. With server storage each account can also hold up to 100 million characters of document text (`STORAGE_MAX_CHARS`).
 - **Own keys.** A user who adds their own key in Settings calls that provider directly from the browser, with no CaptBot limits on chat. With server storage, indexing and search still run on the server and count toward those allowances.
 - **Fails closed.** If Clerk, the Gemini key or (in production) Upstash is missing, the functions refuse requests instead of serving unauthenticated or unlimited calls. Without a database, storage requests are refused and the app stays in browser storage.
 
@@ -157,7 +173,10 @@ Without Upstash outside production, limits fall back to an in-memory counter. Th
   - the chat and embedding providers you configure;
   - `huggingface.co`, for a one-time model download if you use local embeddings or reranking;
   - pages you import, plus an optional reader proxy you set;
+  - MCP servers you add as connectors;
   - Google Fonts.
+- **Scanned PDFs.** Pages without a text layer are sent as images to your chat provider to be read. PDFs that have a text layer are parsed entirely in the browser.
+- **Connectors.** Connector URLs and access tokens are stored like API keys: in this browser, never synced, and sent only to that server. A tool call sends the arguments the model chose to that server, so CaptBot shows them and asks before every call you haven't allowed always; tool results are treated as untrusted data, like document text. Plain http is refused except for servers on localhost.
 - **Prompt-injection hardening.** Retrieved text is fenced and explicitly treated as untrusted data.
 
 ## What changed in v2
@@ -183,7 +202,7 @@ Without Upstash outside production, limits fall back to an in-memory counter. Th
 ## Development
 
 ```bash
-npm test            # Vitest: chunker, search, retrieval quality, citations, parsers, sync, API, end-to-end pipeline, packs
+npm test            # Vitest: chunker, search, retrieval quality, citations, parsers, OCR page splitting, sync, API, end-to-end pipeline, packs
 npm run typecheck
 npm run build
 ```
@@ -198,13 +217,14 @@ src/
     auth/         session, per-account profile storage, free-tier usage
     rag/          chunker, parsers, ingest, lexical + vector indexes, fusion, retrieve, answer, citations, eval
     sync/         server storage: change tracking, push/pull, uploads, server search
-    providers/    gemini, anthropic, openai (+compatible), local (transformers.js worker client)
+    providers/    gemini, anthropic, openai (+compatible), local (transformers.js worker client); tool calling
+    mcp/          connectors: MCP client (loaded on first use), tool names and the toolbox for an answer
     kb/           backup / knowledge-pack format
     db.ts         IndexedDB schema (Dexie)
     settings.ts   provider, model and retrieval settings
     prompts.ts    system and utility prompts
   workers/        local embedding + cross-encoder worker
-  components/     sidebar, knowledge panel, chat, source viewer, settings
+  components/     navigation rail, chat list (chats and saved prompts), chat, evidence pane, knowledge page, settings
   hooks/useChat.ts
 ```
 

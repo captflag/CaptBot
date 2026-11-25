@@ -76,7 +76,7 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname, 'src') },
   },
   server: { port: 3000 },
-  // Provider SDKs, parsers and charts are already split out; the app shell is ~240 kB gzipped.
+  // Provider SDKs, parsers and charts are already split out; the app shell is ~210 kB gzipped.
   build: { chunkSizeWarningLimit: 900 },
   worker: { format: 'es' },
   optimizeDeps: {
@@ -95,6 +95,9 @@ export default defineConfig({
       '@anthropic-ai/sdk',
       'gsap',
       '@gsap/react',
+      '@modelcontextprotocol/sdk/client/index.js',
+      '@modelcontextprotocol/sdk/client/sse.js',
+      '@modelcontextprotocol/sdk/client/streamableHttp.js',
     ],
   },
   test: {

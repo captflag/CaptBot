@@ -10,6 +10,7 @@ import { resumeUpload, uploadDocument, type UploadInput, type UploadResult } fro
 import type { Chunk, ChunkVector, DocText, KbDocument } from '../types';
 import { chunkText } from './chunker';
 import { errorText } from './json';
+import { ocrPages } from './ocr';
 import type { ParsedDoc } from './parsers';
 import { contextTitle, embedText, knowledge } from './store';
 
@@ -84,9 +85,9 @@ async function parseSource(source: IngestSource): Promise<ParsedDoc> {
   const { fetchUrl, normalizeText, parseFile } = await import('./parsers');
   switch (source.kind) {
     case 'file':
-      return parseFile(source.file);
+      return parseFile(source.file, ocrPages);
     case 'url':
-      return fetchUrl(source.url, getSettings().readerProxy);
+      return fetchUrl(source.url, getSettings().readerProxy, undefined, ocrPages);
     case 'text':
       return { text: normalizeText(source.text), mimeType: 'text/plain' };
   }

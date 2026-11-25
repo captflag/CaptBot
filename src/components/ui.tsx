@@ -4,13 +4,13 @@ import { createPortal } from 'react-dom';
 import { cn } from '../lib/utils';
 
 export const inputClass =
-  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:border-gray-700 dark:bg-white/5 dark:text-gray-100 dark:focus:ring-violet-900/50';
+  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-accent-400 focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-white/5 dark:text-gray-100 dark:focus:ring-accent-900/50';
 
 export const buttonClass =
   'inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10';
 
 export const primaryButtonClass =
-  'inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200';
+  'inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-bold text-gray-950 transition hover:bg-accent-400 disabled:cursor-not-allowed disabled:opacity-50';
 
 export function Modal({
   open,
@@ -37,7 +37,7 @@ export function Modal({
   // become the containing block and trap this "fixed" overlay inside it.
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="anim-fade fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
@@ -45,12 +45,12 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-[#0c0c0c]',
+          'anim-rise flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl',
           className,
         )}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+          <h2 className="font-display text-base leading-none text-ink">{title}</h2>
           <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10" aria-label="Close">
             <X size={16} />
           </button>
@@ -85,7 +85,7 @@ export function Toggle({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={cn('relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors', checked ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-700')}
+        className={cn('relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors', checked ? 'bg-accent-600' : 'bg-gray-300 dark:bg-gray-700')}
       >
         <span className={cn('absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', checked && 'translate-x-4')} />
       </button>
@@ -127,7 +127,7 @@ export function IconButton({
       disabled={disabled}
       className={cn(
         'rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-white/10 dark:hover:text-gray-200',
-        active && 'text-violet-600 dark:text-violet-400',
+        active && 'text-accent-600 dark:text-accent-400',
         className,
       )}
     >

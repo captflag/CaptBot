@@ -24,6 +24,8 @@ class LazyChat implements ChatProvider {
     readonly supportsWebSearch: boolean,
     private readonly load: () => Promise<ChatProvider>,
   ) {}
+  /** Both SDK-backed providers (Gemini and Claude) can call functions. */
+  readonly supportsTools = true;
   async *stream(req: ChatRequest): AsyncGenerator<ChatDelta> {
     this.instance ??= this.load();
     yield* (await this.instance).stream(req);

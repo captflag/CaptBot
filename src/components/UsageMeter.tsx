@@ -34,7 +34,7 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
         {!compact && <span className="shrink-0">resets at {resets}</span>}
       </div>
       <div className={cn('overflow-hidden rounded-full bg-gray-200 dark:bg-white/10', compact ? 'h-0.5' : 'h-1.5')}>
-        <div className={cn('h-full rounded-full transition-all', low ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${pct}%` }} />
+        <div className={cn('h-full rounded-full transition-all', low ? 'bg-amber-500' : 'bg-accent-500')} style={{ width: `${pct}%` }} />
       </div>
       {!compact && usage.embed && (
         <div className="text-[11px] text-gray-500 dark:text-gray-400">

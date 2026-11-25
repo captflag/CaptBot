@@ -117,6 +117,21 @@ export interface RetrievalTrace {
   warning?: string;
 }
 
+/** One call of a connector's tool while an answer was being written. */
+export interface ToolRun {
+  id: string;
+  /** The connector's name. */
+  connector: string;
+  /** The tool's name on its server; empty when the connector could not be reached at all. */
+  tool: string;
+  /** The arguments, as JSON (shortened). */
+  args?: string;
+  /** "approval": waiting for the user to allow or deny it. */
+  status: 'approval' | 'running' | 'done' | 'error' | 'denied';
+  /** What came back, or why it failed (shortened). */
+  output?: string;
+}
+
 export interface ChatMessage {
   id: string;
   threadId: string;
@@ -127,9 +142,12 @@ export interface ChatMessage {
   mode?: 'chat' | 'research';
   /** On user messages: web search was requested, so a regenerate repeats it. */
   webSearch?: boolean;
+  /** On user messages: connector tools were on, so a regenerate keeps them on. */
+  tools?: boolean;
   sources?: SourceRef[];
   webSources?: WebSource[];
   steps?: ResearchStep[];
+  toolRuns?: ToolRun[];
   trace?: RetrievalTrace;
   model?: string;
   pinned?: boolean;

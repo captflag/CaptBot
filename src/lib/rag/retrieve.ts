@@ -64,7 +64,7 @@ export const localCandidates: CandidateSource = {
         warnings.push(`Semantic search failed (${errorText(err)}), so keyword search was used.`);
       }
     } else {
-      warnings.push('No documents are indexed with the current embedding model, so only keyword search ran. Re-index from the Knowledge tab.');
+      warnings.push('No documents are indexed with the current embedding model, so only keyword search ran. Re-index from the Knowledge page.');
     }
     if (req.hybrid || !lists.length) lists.push(knowledge.lexicalSearch(req.query, req.limit, req.docIds));
 

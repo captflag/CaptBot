@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createCollection, db } from '../db';
 import { applyPack, buildPack, decodePack, encodePack } from '../kb/transfer';
+import { GAP_SYSTEM } from '../prompts';
 import { providerOverrides } from '../providers';
 import type { ChatProvider, ChatRequest, EmbedInput, Embedder } from '../providers/types';
 import { getSettings, updateSettings } from '../settings';
@@ -37,6 +38,11 @@ class FakeChat implements ChatProvider {
   requests: ChatRequest[] = [];
   async *stream(req: ChatRequest) {
     this.requests.push(req);
+    if (req.system === GAP_SYSTEM) {
+      // One real gap, plus a query that already ran (which must not be searched twice).
+      yield { text: '{"queries": ["panel cleaning and maintenance", "Solar panel efficiency"]}' };
+      return;
+    }
     if (req.json) {
       yield { text: '{"queries": ["solar panel efficiency", "wind turbine output"]}' };
       return;
@@ -155,7 +161,7 @@ describe('answer', () => {
     expect(retrieval.sources.every((s) => s.docName === 'wind.md')).toBe(true);
   });
 
-  it('runs deep research as plan → per-query search → report', async () => {
+  it('runs deep research as plan → per-query search → gap check → follow-up search → report', async () => {
     await ingest({ kind: 'text', name: 'solar.md', text: SOLAR });
     await ingest({ kind: 'text', name: 'wind.md', text: WIND });
 
@@ -168,6 +174,8 @@ describe('answer', () => {
       'Planning the research',
       'Searching: solar panel efficiency',
       'Searching: wind turbine output',
+      'Checking the evidence for gaps',
+      'Searching: panel cleaning and maintenance',
       'Writing the report',
     ]);
     expect(lastSteps.steps.every((s) => s.status === 'done')).toBe(true);

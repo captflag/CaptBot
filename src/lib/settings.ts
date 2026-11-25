@@ -2,6 +2,19 @@ import { useSyncExternalStore } from 'react';
 import { profileKey } from './auth/profile';
 import type { ChatProviderId, EmbeddingProviderId, RerankMode } from './types';
 
+/** A remote MCP server whose tools the chat model may call. Kept in this browser, never synced. */
+export interface McpConnector {
+  id: string;
+  name: string;
+  /** Streamable HTTP endpoint (older HTTP+SSE servers work too). */
+  url: string;
+  /** Sent as "Authorization: Bearer …" when set. */
+  token: string;
+  enabled: boolean;
+  /** Tools (by the server's own name) that run without asking first. */
+  alwaysAllow: string[];
+}
+
 export interface Settings {
   displayName: string;
   theme: 'light' | 'dark';
@@ -33,6 +46,7 @@ export interface Settings {
   compatibleBaseUrl: string;
   /** Optional URL prefix used to fetch web pages that block browser (CORS) access. */
   readerProxy: string;
+  connectors: McpConnector[];
 }
 
 export const CHAT_PRESETS: Record<ChatProviderId, { label: string; main: string; fast: string; models: string[] }> = {
@@ -85,13 +99,14 @@ export function defaultSettings(): Settings {
   return {
     displayName: '',
     theme: systemTheme(),
-    font: 'Inter',
+    font: 'Plus Jakarta Sans',
     chat: { provider: 'gemini', model: CHAT_PRESETS.gemini.main, fastModel: CHAT_PRESETS.gemini.fast },
     embeddings: { provider: 'gemini', model: EMBEDDING_PRESETS.gemini.model, dimensions: EMBEDDING_PRESETS.gemini.dimensions },
     retrieval: { hybrid: true, rerank: 'local', filterIrrelevant: true, candidates: 30, topK: 8, contextTokens: 6000, rewriteQueries: true },
     keys: { gemini: '', openai: '', anthropic: '', compatible: '' },
     compatibleBaseUrl: 'http://localhost:11434/v1',
     readerProxy: '',
+    connectors: [],
   };
 }
 
@@ -105,6 +120,8 @@ function load(): Settings {
       ...base,
       ...saved,
       theme: base.theme,
+      // Inter was the old default face and is no longer offered; anyone still on it moves to the new default.
+      font: !saved.font || saved.font === 'Inter' ? base.font : saved.font,
       chat: { ...base.chat, ...saved.chat },
       embeddings: { ...base.embeddings, ...saved.embeddings },
       retrieval: { ...base.retrieval, ...saved.retrieval },

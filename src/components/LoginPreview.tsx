@@ -38,14 +38,14 @@ export function LoginPreview() {
 
   return (
     <LoginPage>
-      <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-xl shadow-gray-200/50 dark:border-gray-800 dark:bg-[#0f0f0f] dark:shadow-black/50">
+      <div className="w-full rounded-2xl border border-line bg-canvas">
         <form onSubmit={submit} className="flex flex-col gap-3 p-6">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Sign in to CaptBot</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Magic link, Google or GitHub. No password needed.</p>
             </div>
-            <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-violet-700 uppercase dark:bg-violet-900/50 dark:text-violet-300">
+            <span className="shrink-0 rounded-full bg-accent-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-accent-700 uppercase dark:bg-accent-900/50 dark:text-accent-300">
               Preview
             </span>
           </div>
@@ -69,7 +69,7 @@ export function LoginPreview() {
           </Field>
           <button
             type="submit"
-            className="group mt-1 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-400"
+            className="group mt-1 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-accent-700 dark:bg-accent-500 dark:hover:bg-accent-400"
           >
             Send magic link
             <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
@@ -77,7 +77,7 @@ export function LoginPreview() {
           {tried && (
             <p
               role="status"
-              className="login-enter rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs leading-relaxed text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200"
+              className="anim-rise rounded-lg border border-accent-200 bg-accent-50 px-3 py-2 text-xs leading-relaxed text-accent-800 dark:border-accent-900 dark:bg-accent-950/40 dark:text-accent-200"
             >
               Preview only, so nothing was sent. Sign-in turns on once a Clerk key is set up (steps below).
             </p>
@@ -95,7 +95,7 @@ export function LoginPreview() {
               'Restart the dev server. This card becomes the real sign-in form.',
             ].map((text, i) => (
               <li key={i} className="flex gap-3">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-violet-100 text-[11px] font-semibold text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-100 text-[11px] font-semibold text-accent-700 dark:bg-accent-900/50 dark:text-accent-300">
                   {i + 1}
                 </span>
                 <span>

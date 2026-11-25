@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ChatList } from './components/ChatList';
 import { ChatView } from './components/ChatView';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { KnowledgePage } from './components/KnowledgePage';
+import { NavRail, type View } from './components/NavRail';
+import { QuickFind } from './components/QuickFind';
 import { SettingsDialog } from './components/SettingsDialog';
-import { Sidebar, type SidebarTab } from './components/Sidebar';
+import { ShortcutsSheet } from './components/ShortcutsSheet';
 import { SourceViewer, type ViewerItem } from './components/SourceViewer';
 import { Toaster } from './components/Toaster';
 import { profileKey } from './lib/auth/profile';
@@ -22,15 +26,23 @@ function readActiveThread(): string | null {
   }
 }
 
+/**
+ * The workspace, as one rounded window on a backdrop: an icon rail, then the current view.
+ * Chats are three panes (past chats, the conversation, and the evidence for an answer);
+ * Knowledge is a full page.
+ */
 export default function App() {
   const settings = useSettings();
+  const [view, setView] = useState<View>('chat');
   const [threadId, setThreadId] = useState<string | null>(readActiveThread);
   const [pendingScope, setPendingScope] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(() => !isNarrow());
-  const [tab, setTab] = useState<SidebarTab>('chats');
+  const [listOpen, setListOpen] = useState(() => !isNarrow());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewer, setViewer] = useState<{ items: ViewerItem[]; index: number } | null>(null);
   const [seed, setSeed] = useState<{ text: string; nonce: number } | null>(null);
+  const [finding, setFinding] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
+  const [chatBusy, setChatBusy] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', settings.theme === 'dark');
@@ -56,13 +68,40 @@ export default function App() {
     void recoverInterrupted();
   }, []);
 
-  const closeIfNarrow = () => {
-    if (isNarrow()) setSidebarOpen(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setFinding((open) => !open);
+        return;
+      }
+      // "?" opens the shortcuts list, unless it is being typed into a field.
+      const t = e.target as HTMLElement | null;
+      const typing = t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? '');
+      if (e.key === '?' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setShortcuts(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const closeListIfNarrow = () => {
+    if (isNarrow()) setListOpen(false);
   };
+
+  /** Switching views puts the evidence pane away: it belongs to what was on screen. */
+  const go = useCallback((next: View) => {
+    setView(next);
+    setViewer(null);
+  }, []);
 
   const newChat = useCallback(() => {
     setThreadId(null);
     setPendingScope([]);
+    setViewer(null);
+    setView('chat');
   }, []);
 
   const openSources = useCallback((items: ViewerItem[], index: number) => setViewer({ items, index }), []);
@@ -72,60 +111,94 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#F9FAFB] text-gray-900 dark:bg-[#050505] dark:text-gray-100">
-      <Sidebar
-        open={sidebarOpen}
-        tab={tab}
-        onTab={setTab}
-        onClose={() => setSidebarOpen(false)}
-        activeThreadId={threadId}
-        onSelectThread={(id) => {
-          setThreadId(id);
-          closeIfNarrow();
-        }}
-        onDeletedThread={(id) => id === threadId && newChat()}
-        onNewChat={() => {
-          newChat();
-          setTab('chats');
-          closeIfNarrow();
-        }}
-        onUsePrompt={(text) => {
-          setSeed({ text, nonce: Date.now() });
-          closeIfNarrow();
-        }}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onViewDocument={viewDocument}
-      />
+    <div className="h-full bg-backdrop md:p-3">
+      <div className="flex h-full flex-col-reverse overflow-hidden bg-surface text-ink md:flex-row md:rounded-[22px] md:border md:border-line md:shadow-[0_30px_80px_-30px_rgb(0_0_0/0.45)]">
+        <NavRail view={view} onView={go} onOpenSettings={() => setSettingsOpen(true)} busy={chatBusy} />
 
-      <main className={cn('flex h-full min-w-0 flex-1 flex-col transition-[margin] duration-300', sidebarOpen && 'lg:ml-[320px]')}>
-        <ErrorBoundary label="The chat view">
-        <ChatView
-          threadId={threadId}
-          onThreadCreated={setThreadId}
-          pendingScope={pendingScope}
-          onPendingScope={setPendingScope}
-          onToggleSidebar={() => setSidebarOpen((o) => !o)}
-          onNewChat={newChat}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onOpenKnowledge={() => {
-            setTab('knowledge');
-            setSidebarOpen(true);
+        {/* Panes that slide over the chat on narrow screens are placed against this box. */}
+        <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          {view === 'chat' && (
+            <ChatList
+              open={listOpen}
+              onClose={() => setListOpen(false)}
+              activeId={threadId}
+              onSelect={(id) => {
+                setThreadId(id);
+                setViewer(null);
+                closeListIfNarrow();
+              }}
+              onDeleted={(id) => id === threadId && newChat()}
+              onNewChat={() => {
+                newChat();
+                closeListIfNarrow();
+              }}
+              onUsePrompt={(text) => {
+                setSeed({ text, nonce: Date.now() });
+                closeListIfNarrow();
+              }}
+            />
+          )}
+
+          <main className="h-full min-w-0 flex-1">
+            {/* The chat stays mounted behind the Knowledge page, so a reply being written is not cut off. */}
+            <div className={cn('h-full', view !== 'chat' && 'hidden')}>
+              <ErrorBoundary label="The chat view">
+                <ChatView
+                  threadId={threadId}
+                  onThreadCreated={setThreadId}
+                  pendingScope={pendingScope}
+                  onPendingScope={setPendingScope}
+                  listOpen={listOpen}
+                  onToggleList={() => setListOpen((o) => !o)}
+                  onNewChat={newChat}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                  onOpenKnowledge={() => go('knowledge')}
+                  onOpenSources={openSources}
+                  onOpenSearch={() => setFinding(true)}
+                  onBusy={setChatBusy}
+                  seed={seed}
+                />
+              </ErrorBoundary>
+            </div>
+            {view === 'knowledge' && (
+              <ErrorBoundary label="The knowledge page">
+                <KnowledgePage onViewDocument={viewDocument} />
+              </ErrorBoundary>
+            )}
+          </main>
+
+          {viewer && (
+            <SourceViewer
+              items={viewer.items}
+              index={viewer.index}
+              onIndex={(index) => setViewer((v) => (v ? { ...v, index } : v))}
+              onClose={() => setViewer(null)}
+            />
+          )}
+        </div>
+      </div>
+
+      {finding && (
+        <QuickFind
+          onClose={() => setFinding(false)}
+          onSelectThread={(id) => {
+            setThreadId(id);
+            go('chat');
+            closeListIfNarrow();
           }}
-          onOpenSources={openSources}
-          seed={seed}
-        />
-        </ErrorBoundary>
-      </main>
-
-      {viewer && (
-        <SourceViewer
-          items={viewer.items}
-          index={viewer.index}
-          onIndex={(index) => setViewer((v) => (v ? { ...v, index } : v))}
-          onClose={() => setViewer(null)}
+          onViewDocument={viewDocument}
+          onUsePrompt={(text) => {
+            setSeed({ text, nonce: Date.now() });
+            go('chat');
+          }}
+          onNewChat={newChat}
+          onOpenKnowledge={() => go('knowledge')}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onShowShortcuts={() => setShortcuts(true)}
         />
       )}
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ShortcutsSheet open={shortcuts} onClose={() => setShortcuts(false)} />
       <Toaster />
     </div>
   );

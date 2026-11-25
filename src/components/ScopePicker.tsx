@@ -13,7 +13,7 @@ function Option({ active, onClick, label, color }: { active: boolean; onClick: (
     >
       {color ? <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} /> : <Layers size={12} className="shrink-0 text-gray-400" />}
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {active && <Check size={13} className="text-violet-600" />}
+      {active && <Check size={13} className="text-accent-600" />}
     </button>
   );
 }
@@ -48,7 +48,7 @@ export function ScopePicker({ value, onChange }: { value: string[]; onChange: (i
         className={cn(
           'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition',
           selected.length
-            ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300'
+            ? 'border-accent-200 bg-accent-50 text-accent-700 dark:border-accent-900 dark:bg-accent-950/40 dark:text-accent-300'
             : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300',
         )}
       >
@@ -65,13 +65,13 @@ export function ScopePicker({ value, onChange }: { value: string[]; onChange: (i
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-1 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-800 dark:bg-[#111]">
+        <div className="absolute right-0 z-40 mt-1 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-800 dark:bg-raised">
           <div className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-gray-400">Search in</div>
           <Option active={!selected.length} onClick={() => onChange([])} label="All knowledge" />
           {collections.map((c) => (
             <Option key={c.id} active={value.includes(c.id)} onClick={() => toggle(c.id)} label={c.name} color={c.color} />
           ))}
-          {!collections.length && <div className="px-2 py-2 text-xs text-gray-400">Create collections in the Knowledge tab to scope chats to them.</div>}
+          {!collections.length && <div className="px-2 py-2 text-xs text-gray-400">Create collections on the Knowledge page to scope chats to them.</div>}
         </div>
       )}
     </div>

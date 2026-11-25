@@ -12,8 +12,8 @@ import { toast } from './Toaster';
 
 function Splash() {
   return (
-    <div className="flex h-full items-center justify-center bg-[#F9FAFB] dark:bg-[#050505]">
-      <Logo size="md" />
+    <div className="flex h-full items-center justify-center bg-canvas dark:bg-canvas">
+      <Logo size="md" withWord />
     </div>
   );
 }

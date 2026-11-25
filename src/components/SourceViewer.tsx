@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, ChevronRight, FileText, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { db } from '../lib/db';
 import { isServerStorage } from '../lib/sync/mode';
 import { remote } from '../lib/sync/remote';
+import { cn } from '../lib/utils';
 import { IconButton } from './ui';
 
 export interface ViewerItem {
@@ -91,7 +92,7 @@ export function SourceViewer({
     body = (
       <div className="space-y-3 p-6 text-sm">
         <p className="text-amber-600">This document is no longer in your knowledge base. The cited passage was:</p>
-        <blockquote className="border-l-2 border-violet-300 pl-4 whitespace-pre-wrap text-gray-700 dark:text-gray-300">{item.text}</blockquote>
+        <blockquote className="border-l-2 border-accent-300 pl-4 whitespace-pre-wrap text-gray-700 dark:text-gray-300">{item.text}</blockquote>
       </div>
     );
   } else {
@@ -100,9 +101,9 @@ export function SourceViewer({
     const from = full ? 0 : Math.max(0, s - WINDOW);
     const to = full ? text.length : Math.min(text.length, e + WINDOW);
     body = (
-      <div className="px-6 py-5 text-[13.5px] leading-7 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300">
+      <div className="px-5 py-5 text-[13.5px] leading-7 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300">
         {from > 0 && (
-          <button onClick={() => setFull(true)} className="mb-3 block text-xs font-medium text-violet-600 hover:underline">
+          <button onClick={() => setFull(true)} className="mb-3 block text-xs font-medium text-accent-600 hover:underline">
             … show full document
           </button>
         )}
@@ -114,7 +115,7 @@ export function SourceViewer({
         )}
         {text.slice(Math.max(from, e), to)}
         {to < text.length && (
-          <button onClick={() => setFull(true)} className="mt-3 block text-xs font-medium text-violet-600 hover:underline">
+          <button onClick={() => setFull(true)} className="mt-3 block text-xs font-medium text-accent-600 hover:underline">
             show full document …
           </button>
         )}
@@ -124,39 +125,58 @@ export function SourceViewer({
 
   return (
     <>
-      <div className="fixed inset-0 z-[65] bg-black/20 backdrop-blur-[1px]" onClick={onClose} />
+      {/* Below xl there is no room for a third column, so the pane lies over the chat. */}
+      <div className="anim-fade absolute inset-0 z-[55] bg-black/40 xl:hidden" onClick={onClose} />
       <aside
-        className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-xl flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-[#0b0b0b]"
-        aria-label="Source viewer"
+        className="anim-pane-right absolute inset-y-0 right-0 z-[60] flex w-full max-w-xl flex-col border-l border-line bg-surface shadow-2xl xl:static xl:z-auto xl:w-[min(34vw,480px)] xl:max-w-none xl:shrink-0 xl:shadow-none"
+        aria-label="Evidence"
       >
-        <div className="flex items-start gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-          <div className="rounded-lg bg-violet-50 p-2 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
-            <FileText size={16} />
-          </div>
+        <div className="flex items-start gap-3 border-b border-line px-5 pt-4 pb-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100" title={item.docName}>
+            <div className="font-mono text-[10px] tracking-wider text-muted uppercase">{items.length > 1 ? `Evidence · ${index + 1} of ${items.length}` : 'Document'}</div>
+            <div className="mt-1 truncate font-display text-base leading-tight text-ink" title={item.docName}>
               {item.docName}
             </div>
-            <div className="truncate text-xs text-gray-500">{meta}</div>
+            <div className="mt-0.5 truncate text-xs text-muted">{meta}</div>
           </div>
-          {items.length > 1 && (
-            <div className="flex items-center gap-0.5 text-xs text-gray-500">
-              <IconButton title="Previous source (←)" onClick={() => onIndex(index - 1)} disabled={index === 0}>
-                <ChevronLeft size={16} />
-              </IconButton>
-              <span className="tabular-nums">
-                {index + 1} / {items.length}
-              </span>
-              <IconButton title="Next source (→)" onClick={() => onIndex(index + 1)} disabled={index >= items.length - 1}>
-                <ChevronRight size={16} />
-              </IconButton>
-            </div>
-          )}
           <IconButton title="Close (Esc)" onClick={onClose}>
             <X size={16} />
           </IconButton>
         </div>
-        <div className="scrollbar-thin flex-1 overflow-y-auto">{body}</div>
+        {items.length > 1 && (
+          <div className="flex items-center gap-1 border-b border-line px-3 py-2">
+            <IconButton title="Previous source (←)" onClick={() => onIndex(index - 1)} disabled={index === 0}>
+              <ChevronLeft size={15} />
+            </IconButton>
+            {/* One numbered tab per source of the answer, matching the [n] chips in it. */}
+            <div className="scrollbar-thin flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="Sources">
+              {items.map((it, i) => (
+                <button
+                  key={i}
+                  role="tab"
+                  aria-selected={i === index}
+                  title={it.docName}
+                  onClick={() => onIndex(i)}
+                  className={cn(
+                    'h-7 min-w-7 shrink-0 rounded-md border px-1.5 font-mono text-[11px] font-semibold tabular-nums transition-colors',
+                    i === index
+                      ? 'border-accent-600 bg-accent-600 text-white'
+                      : 'border-line text-muted hover:border-accent-300 hover:text-accent-700 dark:hover:text-accent-300',
+                  )}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <IconButton title="Next source (→)" onClick={() => onIndex(index + 1)} disabled={index >= items.length - 1}>
+              <ChevronRight size={15} />
+            </IconButton>
+          </div>
+        )}
+        {/* Keyed by source, so the text fades in and the marker stroke redraws on each switch. */}
+        <div key={`${item.docId}:${item.start}`} className="anim-fade scrollbar-thin flex-1 overflow-y-auto">
+          {body}
+        </div>
       </aside>
     </>
   );
