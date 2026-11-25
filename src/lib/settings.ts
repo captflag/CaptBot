@@ -107,7 +107,11 @@ export function defaultSettings(): Settings {
     theme: systemTheme(),
     font: 'Plus Jakarta Sans',
     chat: { provider: 'gemini', model: CHAT_PRESETS.gemini.main, fastModel: CHAT_PRESETS.gemini.fast },
-    embeddings: { provider: 'gemini', model: EMBEDDING_PRESETS.gemini.model, dimensions: EMBEDDING_PRESETS.gemini.dimensions },
+    // Without sign-in there is no free tier, so the in-browser model is the only one that indexes
+    // without a key: a first upload then works straight away instead of asking for one.
+    embeddings: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+      ? { provider: 'gemini', model: EMBEDDING_PRESETS.gemini.model, dimensions: EMBEDDING_PRESETS.gemini.dimensions }
+      : { provider: 'local', model: EMBEDDING_PRESETS.local.model, dimensions: EMBEDDING_PRESETS.local.dimensions },
     retrieval: { hybrid: true, rerank: 'local', filterIrrelevant: true, candidates: 30, topK: 8, contextTokens: 6000, rewriteQueries: true },
     keys: { gemini: '', openai: '', anthropic: '', compatible: '' },
     compatibleBaseUrl: 'http://localhost:11434/v1',

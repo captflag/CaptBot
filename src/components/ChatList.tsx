@@ -263,7 +263,7 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
                             onClick={() => onSelect(t.id)}
                             onDoubleClick={() => setEditing(t.id)}
                             aria-current={active ? 'true' : undefined}
-                            className="block w-full px-3 py-2.5 text-left"
+                            className="block w-full px-3 py-2.5 text-left max-sm:pb-1"
                           >
                             <span className="flex items-center gap-2">
                               {isStarred ? (
@@ -285,7 +285,8 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
                             </span>
                             {preview && <span className="mt-1 line-clamp-2 block pl-4 text-xs leading-relaxed text-muted">{plain(preview)}</span>}
                           </button>
-                          <div className="absolute right-1.5 bottom-1.5 flex rounded-lg bg-surface shadow-sm ring-1 ring-line sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+                          {/* Wider screens: floats over the row on hover. Phones (no hover): sits below the preview, so it never covers it. */}
+                          <div className="mr-1.5 mb-1.5 ml-auto flex w-fit rounded-lg bg-surface shadow-sm ring-1 ring-line sm:absolute sm:right-1.5 sm:bottom-1.5 sm:m-0 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
                             <IconButton title={isStarred ? 'Remove star' : 'Star: keep at the top'} onClick={() => toggleStar(t.id)} active={isStarred}>
                               <Star size={12} className={isStarred ? 'fill-current' : undefined} />
                             </IconButton>
