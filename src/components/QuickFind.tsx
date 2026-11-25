@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { db } from '../lib/db';
 import type { KbDocument, SavedPrompt, Thread } from '../lib/types';
 import { cn } from '../lib/utils';
+import { useDialogFocus } from './ui';
 
 interface Item {
   key: string;
@@ -36,6 +37,8 @@ export function QuickFind({ onClose, onSelectThread, onViewDocument, onUsePrompt
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  useDialogFocus(box);
   const needle = query.trim().toLowerCase();
 
   const threads = useLiveQuery(() => db.threads.orderBy('updatedAt').reverse().toArray(), [], [] as Thread[]);
@@ -65,7 +68,13 @@ export function QuickFind({ onClose, onSelectThread, onViewDocument, onUsePrompt
     ...threads
       .filter((t) => has(t.title) || inMessages.has(t.id))
       .slice(0, PER_GROUP)
-      .map((t) => ({ key: `t:${t.id}`, group: needle ? 'Chats' : 'Recent chats', label: t.title, icon: <MessageSquare size={14} />, run: () => onSelectThread(t.id) })),
+      .map((t) => ({
+        key: `t:${t.id}`,
+        group: needle ? 'Chats' : 'Recent chats',
+        label: t.title,
+        icon: <MessageSquare size={14} />,
+        run: () => onSelectThread(t.id),
+      })),
     // With nothing typed, the box stays short: actions and recent chats only.
     ...(needle
       ? [
@@ -94,8 +103,17 @@ export function QuickFind({ onClose, onSelectThread, onViewDocument, onUsePrompt
   };
 
   return createPortal(
-    <div className="anim-fade fixed inset-0 z-[110] flex items-start justify-center bg-black/45 px-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label="Quick find" className="anim-rise flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
+    <div
+      className="anim-fade fixed inset-0 z-[110] flex items-start justify-center bg-black/45 px-4 pt-[12vh]"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        ref={box}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick find"
+        className="anim-rise flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl"
+      >
         <div className="flex items-center gap-3 border-b border-line px-4">
           <Search size={16} className="shrink-0 text-muted" />
           <input
@@ -140,9 +158,16 @@ export function QuickFind({ onClose, onSelectThread, onViewDocument, onUsePrompt
                 aria-selected={i === selected}
                 onMouseMove={() => setIndex(i)}
                 onClick={() => choose(item)}
-                className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13.5px] text-ink', i === selected && 'bg-canvas ring-1 ring-line')}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13.5px] text-ink',
+                  i === selected && 'bg-canvas ring-1 ring-line',
+                )}
               >
-                <span className={cn('grid h-7 w-7 shrink-0 place-items-center rounded-lg', i === selected ? 'bg-accent-500 text-gray-950' : 'bg-canvas text-muted')}>{item.icon}</span>
+                <span
+                  className={cn('grid h-7 w-7 shrink-0 place-items-center rounded-lg', i === selected ? 'bg-accent-500 text-gray-950' : 'bg-canvas text-muted')}
+                >
+                  {item.icon}
+                </span>
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 {i === selected && <CornerDownLeft size={13} className="shrink-0 text-muted" />}
               </button>

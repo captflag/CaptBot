@@ -34,17 +34,7 @@ function locate(text: string, item: ViewerItem): [number, number] | null {
   return null;
 }
 
-export function SourceViewer({
-  items,
-  index,
-  onIndex,
-  onClose,
-}: {
-  items: ViewerItem[];
-  index: number;
-  onIndex: (i: number) => void;
-  onClose: () => void;
-}) {
+export function SourceViewer({ items, index, onIndex, onClose }: { items: ViewerItem[]; index: number; onIndex: (i: number) => void; onClose: () => void }) {
   const item = items[Math.min(index, items.length - 1)];
   // undefined while loading, null when there's no copy in this browser
   const docText = useLiveQuery(async () => (await db.docTexts.get(item.docId)) ?? null, [item.docId]);
@@ -87,12 +77,12 @@ export function SourceViewer({
 
   let body: ReactNode;
   if (docText === undefined || (docText === null && fetching === item.docId)) {
-    body = <div className="p-6 text-sm text-gray-400">Loading…</div>;
+    body = <div className="p-6 text-sm text-muted">Loading…</div>;
   } else if (docText === null) {
     body = (
       <div className="space-y-3 p-6 text-sm">
-        <p className="text-amber-600">This document is no longer in your knowledge base. The cited passage was:</p>
-        <blockquote className="border-l-2 border-accent-300 pl-4 whitespace-pre-wrap text-gray-700 dark:text-gray-300">{item.text}</blockquote>
+        <p className="text-amber-700 dark:text-amber-400">This document is no longer in your knowledge base. The cited passage was:</p>
+        <blockquote className="border-l-2 border-accent-300 pl-4 whitespace-pre-wrap text-ink">{item.text}</blockquote>
       </div>
     );
   } else {
@@ -101,9 +91,9 @@ export function SourceViewer({
     const from = full ? 0 : Math.max(0, s - WINDOW);
     const to = full ? text.length : Math.min(text.length, e + WINDOW);
     body = (
-      <div className="px-5 py-5 text-[13.5px] leading-7 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300">
+      <div className="px-5 py-5 text-[13.5px] leading-7 whitespace-pre-wrap break-words text-ink">
         {from > 0 && (
-          <button onClick={() => setFull(true)} className="mb-3 block text-xs font-medium text-accent-600 hover:underline">
+          <button onClick={() => setFull(true)} className="mb-3 block text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
             … show full document
           </button>
         )}
@@ -115,7 +105,7 @@ export function SourceViewer({
         )}
         {text.slice(Math.max(from, e), to)}
         {to < text.length && (
-          <button onClick={() => setFull(true)} className="mt-3 block text-xs font-medium text-accent-600 hover:underline">
+          <button onClick={() => setFull(true)} className="mt-3 block text-xs font-medium text-accent-700 hover:underline dark:text-accent-400">
             show full document …
           </button>
         )}
@@ -133,7 +123,9 @@ export function SourceViewer({
       >
         <div className="flex items-start gap-3 border-b border-line px-5 pt-4 pb-3">
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-[10px] tracking-wider text-muted uppercase">{items.length > 1 ? `Evidence · ${index + 1} of ${items.length}` : 'Document'}</div>
+            <div className="font-mono text-[10px] tracking-wider text-muted uppercase">
+              {items.length > 1 ? `Evidence · ${index + 1} of ${items.length}` : 'Document'}
+            </div>
             <div className="mt-1 truncate font-display text-base leading-tight text-ink" title={item.docName}>
               {item.docName}
             </div>

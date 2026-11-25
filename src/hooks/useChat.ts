@@ -116,7 +116,9 @@ export function useChat(threadId: string | null, onThreadCreated: (id: string) =
         else msg.error = errorText(err);
         msg.steps = msg.steps?.map((s) => (s.status === 'running' ? { ...s, status: 'error', detail: msg.aborted ? 'Stopped' : s.detail } : s));
         msg.toolRuns = msg.toolRuns?.map((r) =>
-          r.status === 'running' || r.status === 'approval' ? { ...r, status: 'error', output: msg.aborted ? 'Stopped' : (r.output ?? 'The answer failed before this finished.') } : r,
+          r.status === 'running' || r.status === 'approval'
+            ? { ...r, status: 'error', output: msg.aborted ? 'Stopped' : (r.output ?? 'The answer failed before this finished.') }
+            : r,
         );
       } finally {
         pendingRef.current.clear();

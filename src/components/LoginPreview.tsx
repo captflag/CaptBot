@@ -10,10 +10,19 @@ const GITHUB_PATH =
 function GoogleGlyph() {
   return (
     <svg aria-hidden="true" viewBox="0 0 48 48" className="size-4">
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
     </svg>
   );
 }
@@ -43,7 +52,7 @@ export function LoginPreview() {
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Sign in to CaptBot</h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Magic link, Google or GitHub. No password needed.</p>
+              <p className="mt-1 text-sm text-muted">Magic link, Google or GitHub. No password needed.</p>
             </div>
             <span className="shrink-0 rounded-full bg-accent-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-accent-700 uppercase dark:bg-accent-900/50 dark:text-accent-300">
               Preview
@@ -59,10 +68,10 @@ export function LoginPreview() {
             </svg>
             Continue with GitHub
           </button>
-          <div className="my-1 flex items-center gap-3 text-[11px] font-semibold tracking-wider text-gray-400 uppercase">
-            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+          <div className="my-1 flex items-center gap-3 text-[11px] font-semibold tracking-wider text-muted uppercase">
+            <span className="h-px flex-1 bg-line" />
             or
-            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            <span className="h-px flex-1 bg-line" />
           </div>
           <Field label="Email address">
             <input type="email" required placeholder="you@company.com" className={cn(inputClass, 'py-2.5')} />
@@ -83,12 +92,12 @@ export function LoginPreview() {
             </p>
           )}
         </form>
-        <details ref={setup} className="group border-t border-gray-100 dark:border-gray-800">
-          <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-3 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+        <details ref={setup} className="group border-t border-line">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-3 text-xs font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
             Set up sign-in
             <ChevronDown size={15} className="transition-transform group-open:rotate-180" />
           </summary>
-          <ol className="flex flex-col gap-3 px-6 pb-5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          <ol className="flex flex-col gap-3 px-6 pb-5 text-sm leading-relaxed text-ink">
             {[
               'Create an app at clerk.com. Turn on Email verification link, and add Google and GitHub.',
               null,
@@ -101,8 +110,8 @@ export function LoginPreview() {
                 <span>
                   {text ?? (
                     <>
-                      Put its publishable key in <code className="rounded bg-gray-100 px-1 font-mono text-xs dark:bg-white/10">.env.local</code> as{' '}
-                      <code className="rounded bg-gray-100 px-1 font-mono text-xs break-all dark:bg-white/10">VITE_CLERK_PUBLISHABLE_KEY</code>.
+                      Put its publishable key in <code className="rounded bg-canvas px-1 font-mono text-xs">.env.local</code> as{' '}
+                      <code className="rounded bg-canvas px-1 font-mono text-xs break-all">VITE_CLERK_PUBLISHABLE_KEY</code>.
                     </>
                   )}
                 </span>
@@ -111,10 +120,7 @@ export function LoginPreview() {
           </ol>
         </details>
       </div>
-      <a
-        href="#"
-        className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-      >
+      <a href="#" className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-muted transition hover:text-ink">
         <ArrowLeft size={14} />
         Back to the app
       </a>

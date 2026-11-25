@@ -102,9 +102,7 @@ export class OpenAIChat implements ChatProvider {
         if (part.function?.arguments) call.args += part.function.arguments;
       }
     }
-    const toolCalls: ToolCall[] = calls
-      .filter((c) => c && c.name)
-      .map((c, i) => ({ id: c.id || `call_${i}`, name: c.name, args: parseArgs(c.args) }));
+    const toolCalls: ToolCall[] = calls.filter((c) => c && c.name).map((c, i) => ({ id: c.id || `call_${i}`, name: c.name, args: parseArgs(c.args) }));
     if (toolCalls.length) yield { toolCalls };
   }
 }

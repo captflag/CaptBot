@@ -31,7 +31,15 @@ interface Props {
 /** The app's navigation: an icon rail down the left edge on wide screens, a bar along the bottom on phones. */
 export function NavRail({ view, onView, onOpenSettings, busy }: Props) {
   const s = useSettings();
-  const initials = s.displayName.trim() ? s.displayName.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() : 'You';
+  const initials = s.displayName.trim()
+    ? s.displayName
+        .trim()
+        .split(/\s+/)
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'You';
   const dark = s.theme === 'dark';
 
   return (
@@ -73,12 +81,21 @@ export function NavRail({ view, onView, onOpenSettings, busy }: Props) {
               <UserButton />
             </Suspense>
           ) : (
-            <div title={s.displayName.trim() || 'You'} className="grid h-9 w-9 place-items-center rounded-xl bg-raised text-[10px] font-bold text-ink ring-1 ring-line">
+            <div
+              title={s.displayName.trim() || 'You'}
+              className="grid h-9 w-9 place-items-center rounded-xl bg-raised text-[10px] font-bold text-ink ring-1 ring-line"
+            >
               {initials}
             </div>
           )}
         </div>
-        <button type="button" onClick={onOpenSettings} aria-label="Settings" title="Settings" className={cn(railButton, 'text-muted hover:bg-canvas hover:text-ink')}>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label="Settings"
+          title="Settings"
+          className={cn(railButton, 'text-muted hover:bg-canvas hover:text-ink')}
+        >
           <SettingsIcon size={18} strokeWidth={1.9} />
         </button>
         {/* Light and dark, as a two-way switch whose knob slides. */}
@@ -104,7 +121,10 @@ export function NavRail({ view, onView, onOpenSettings, busy }: Props) {
               aria-label={t.label}
               title={t.label}
               onClick={() => updateSettings({ theme: t.value })}
-              className={cn('relative grid h-7 w-7 place-items-center rounded-full transition-colors', dark === (t.value === 'dark') ? 'text-ink' : 'text-muted hover:text-ink')}
+              className={cn(
+                'relative grid h-7 w-7 place-items-center rounded-full transition-colors',
+                dark === (t.value === 'dark') ? 'text-ink' : 'text-muted hover:text-ink',
+              )}
             >
               <t.icon size={14} />
             </button>

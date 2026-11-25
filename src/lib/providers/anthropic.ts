@@ -23,12 +23,10 @@ function toContent(m: ChatTurn): Anthropic.Beta.BetaContentBlockParam[] {
   if (m.toolResults?.length) {
     return m.toolResults.map((r) => ({ type: 'tool_result', tool_use_id: r.id, content: r.output, is_error: r.isError || undefined }));
   }
-  const content: Anthropic.Beta.BetaContentBlockParam[] = (m.images ?? []).map(
-    (img): Anthropic.Beta.BetaImageBlockParam => ({
-      type: 'image',
-      source: { type: 'base64', media_type: img.mimeType as ImageMediaType, data: img.data },
-    }),
-  );
+  const content: Anthropic.Beta.BetaContentBlockParam[] = (m.images ?? []).map((img): Anthropic.Beta.BetaImageBlockParam => ({
+    type: 'image',
+    source: { type: 'base64', media_type: img.mimeType as ImageMediaType, data: img.data },
+  }));
   // Empty text blocks are rejected (e.g. an image-only question).
   if (m.content) content.push({ type: 'text', text: m.content });
   for (const c of m.toolCalls ?? []) content.push({ type: 'tool_use', id: c.id, name: c.name, input: c.args });
@@ -47,13 +45,13 @@ export class AnthropicChat implements ChatProvider {
   }
 
   async *stream(req: ChatRequest): AsyncGenerator<ChatDelta> {
-    const system = req.json
-      ? `${req.system ?? ''}\n\nReply with a single valid JSON value and nothing else — no prose, no code fences.`.trim()
-      : req.system;
+    const system = req.json ? `${req.system ?? ''}\n\nReply with a single valid JSON value and nothing else — no prose, no code fences.`.trim() : req.system;
     const messages: Anthropic.Beta.BetaMessageParam[] = req.messages.map((m) => ({ role: m.role, content: toContent(m) }));
-    const tools = req.tools?.map(
-      (t): Anthropic.Beta.BetaTool => ({ name: t.name, description: t.description, input_schema: t.parameters as Anthropic.Beta.BetaTool.InputSchema }),
-    );
+    const tools = req.tools?.map((t): Anthropic.Beta.BetaTool => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.parameters as Anthropic.Beta.BetaTool.InputSchema,
+    }));
     const effort = effortFor(req.model, req.effort);
 
     const stream = this.client.beta.messages.stream(
@@ -64,9 +62,7 @@ export class AnthropicChat implements ChatProvider {
         messages,
         ...(tools?.length ? { tools } : {}),
         ...(effort ? { output_config: { effort } } : {}),
-        ...(supportsFallbacks(req.model)
-          ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
-          : {}),
+        ...(supportsFallbacks(req.model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
       },
       { signal: req.signal },
     );

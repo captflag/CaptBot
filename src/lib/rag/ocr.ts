@@ -41,6 +41,6 @@ export async function ocrPages(images: ImageAttachment[]): Promise<string[]> {
     );
     return splitPages(reply, images.length);
   } catch (err) {
-    throw new Error(`This PDF is scanned, so its pages are read by the chat model, and that failed: ${errorText(err)}`);
+    throw new Error(`This PDF is scanned, so its pages are read by the chat model, and that failed: ${errorText(err)}`, { cause: err });
   }
 }

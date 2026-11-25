@@ -133,7 +133,15 @@ describe('connector tools', () => {
 
   it('leaves tools out when they are switched off for the message', async () => {
     const events: AnswerEvent[] = [];
-    for await (const e of answer({ thread: { collectionIds: [] }, history: [], question: 'Hi', mode: 'chat', webSearch: false, tools: false, signal: new AbortController().signal })) {
+    for await (const e of answer({
+      thread: { collectionIds: [] },
+      history: [],
+      question: 'Hi',
+      mode: 'chat',
+      webSearch: false,
+      tools: false,
+      signal: new AbortController().signal,
+    })) {
       events.push(e);
     }
     expect(chat.requests[0].tools).toBeUndefined();

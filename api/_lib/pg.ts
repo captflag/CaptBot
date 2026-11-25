@@ -73,7 +73,14 @@ const toDocument = (r: Row) => ({
   updatedAt: r.updated_at,
 });
 
-const toThread = (r: Row) => ({ id: r.id, title: r.title, collectionIds: r.collection_ids, createdAt: r.created_at, updatedAt: r.updated_at });
+const toThread = (r: Row) => ({
+  id: r.id,
+  title: r.title,
+  collectionIds: r.collection_ids,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+  starred: r.starred,
+});
 
 const toMessage = (r: Row) => ({ ...(r.data ?? {}), id: r.id, threadId: r.thread_id, role: r.role, content: r.content, createdAt: r.created_at });
 
@@ -148,7 +155,7 @@ export function pgStore(url: string, opts: PgStoreOptions): DataStore {
       case 'documents':
         return sql`select ${docColumns}, deleted, txid::text as tx from captbot.documents where ${where} ${page}`;
       case 'threads':
-        return sql`select id, title, collection_ids, created_at, updated_at, deleted, txid::text as tx from captbot.threads where ${where} ${page}`;
+        return sql`select id, title, collection_ids, created_at, updated_at, starred, deleted, txid::text as tx from captbot.threads where ${where} ${page}`;
       case 'messages':
         return sql`select id, thread_id, role, content, created_at, data, deleted, txid::text as tx from captbot.messages where ${where} ${page}`;
       case 'prompts':
@@ -205,11 +212,12 @@ export function pgStore(url: string, opts: PgStoreOptions): DataStore {
       }
       case 'threads':
         return (
-          await tx`insert into captbot.threads (user_id, id, title, collection_ids, created_at, updated_at)
+          await tx`insert into captbot.threads (user_id, id, title, collection_ids, created_at, updated_at, starred)
             values (${u}, ${id}, ${text(row.title, 500, 'title')}, ${ids(row.collectionIds, 'collectionIds')}::text[],
-                    ${num(row.createdAt, 'createdAt')}, ${num(row.updatedAt, 'updatedAt')})
+                    ${num(row.createdAt, 'createdAt')}, ${num(row.updatedAt, 'updatedAt')}, ${row.starred === true})
             on conflict (user_id, id) do update set
-              title = excluded.title, collection_ids = excluded.collection_ids, updated_at = excluded.updated_at, deleted = false`
+              title = excluded.title, collection_ids = excluded.collection_ids, updated_at = excluded.updated_at,
+              starred = excluded.starred, deleted = false`
         ).count;
       case 'messages': {
         if (row.role !== 'user' && row.role !== 'assistant') throw new HttpError(400, 'role must be "user" or "assistant".');
@@ -287,7 +295,10 @@ export function pgStore(url: string, opts: PgStoreOptions): DataStore {
         const [{ used }] = await tx`select coalesce(sum(char_count), 0)::bigint as used from captbot.documents
           where user_id = ${userId} and not deleted and id <> ${b.id}`;
         if (used + b.charCount > opts.maxChars) {
-          throw new HttpError(413, `Your account's storage is full (${Math.round(opts.maxChars / 1_000_000)} million characters of text). Remove some documents to add more.`);
+          throw new HttpError(
+            413,
+            `Your account's storage is full (${Math.round(opts.maxChars / 1_000_000)} million characters of text). Remove some documents to add more.`,
+          );
         }
         if (existing) {
           // Starting this document over: clear what an earlier upload left behind.

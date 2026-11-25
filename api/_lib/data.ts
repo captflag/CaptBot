@@ -92,7 +92,10 @@ export function parsePush(raw: unknown): SyncChange[] {
 export function parseCreateDocument(raw: unknown): CreateDocumentBody {
   const b = object(raw);
   if (b.sourceType !== 'file' && b.sourceType !== 'url' && b.sourceType !== 'text') throw new HttpError(400, 'sourceType must be file, url or text.');
-  if (b.pageOffsets !== undefined && (!Array.isArray(b.pageOffsets) || b.pageOffsets.length > 100_000 || !b.pageOffsets.every((n) => Number.isInteger(n) && n >= 0))) {
+  if (
+    b.pageOffsets !== undefined &&
+    (!Array.isArray(b.pageOffsets) || b.pageOffsets.length > 100_000 || !b.pageOffsets.every((n) => Number.isInteger(n) && n >= 0))
+  ) {
     throw new HttpError(400, 'pageOffsets must be a list of offsets.');
   }
   return {
@@ -120,7 +123,8 @@ export function parseAppendText(raw: unknown): AppendTextBody {
 
 function parseChunk(raw: unknown): ChunkUpload {
   const c = object(raw, 'a chunk');
-  if (typeof c.text !== 'string' || !c.text || c.text.length > MAX_CHUNK_CHARS) throw new HttpError(400, `Chunk text must be at most ${MAX_CHUNK_CHARS} characters.`);
+  if (typeof c.text !== 'string' || !c.text || c.text.length > MAX_CHUNK_CHARS)
+    throw new HttpError(400, `Chunk text must be at most ${MAX_CHUNK_CHARS} characters.`);
   if (c.prefix !== undefined && (typeof c.prefix !== 'string' || c.prefix.length > 4000)) throw new HttpError(400, 'Chunk prefix is too long.');
   return {
     id: str(c.id, 'chunk id', MAX_ID),
@@ -236,7 +240,12 @@ export function createDataHandler(deps: ApiDeps) {
       // Every branch awaits, so its errors land in the catch below rather than escaping as a rejection.
       switch (op) {
         case 'status': {
-          const status: StatusResponse = { storage: true, embedModel: STORAGE_EMBED_MODEL, dimensions: STORAGE_DIMENSIONS, embeddingKey: STORAGE_EMBEDDING_KEY };
+          const status: StatusResponse = {
+            storage: true,
+            embedModel: STORAGE_EMBED_MODEL,
+            dimensions: STORAGE_DIMENSIONS,
+            embeddingKey: STORAGE_EMBEDDING_KEY,
+          };
           return json(200, status);
         }
         case 'pull':

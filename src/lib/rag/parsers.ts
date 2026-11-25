@@ -108,7 +108,12 @@ export async function parsePdf(data: ArrayBuffer, ocr?: PageOcr): Promise<Parsed
       pageOffsets.push(text.length);
       text += page;
     }
-    if (!text.trim()) throw new Error(ocr ? 'No text could be read from this PDF, even from its page images.' : 'This PDF has no extractable text. It may be a scanned image; run OCR on it first.');
+    if (!text.trim())
+      throw new Error(
+        ocr
+          ? 'No text could be read from this PDF, even from its page images.'
+          : 'This PDF has no extractable text. It may be a scanned image; run OCR on it first.',
+      );
     const meta = await pdf.getMetadata().catch(() => null);
     const title = (meta?.info as { Title?: string } | undefined)?.Title?.trim() || undefined;
     return { text, pageOffsets, title, mimeType: 'application/pdf' };
@@ -234,9 +239,7 @@ export function csvToText(text: string, delimiter = ','): string {
   const rows = parseCsv(text, delimiter).filter((r) => r.some((c) => c.trim()));
   if (rows.length < 2) return rows.map((r) => r.join(' | ')).join('\n');
   const [header, ...body] = rows;
-  return body
-    .map((r) => header.map((h, j) => `${h.trim() || `column ${j + 1}`}: ${(r[j] ?? '').trim()}`).join('; '))
-    .join('\n');
+  return body.map((r) => header.map((h, j) => `${h.trim() || `column ${j + 1}`}: ${(r[j] ?? '').trim()}`).join('; ')).join('\n');
 }
 
 export function jsonToText(raw: string): string {

@@ -25,12 +25,11 @@ import { CHAT_PRESETS, updateSettings, useSettings } from '../lib/settings';
 import type { ChatMessage, ChatProviderId, ResearchStep, RetrievalTrace, SourceRef, ToolRun, WebSource } from '../lib/types';
 import { cn, plural } from '../lib/utils';
 import { Logo } from './Logo';
+import { AnswerLoader } from './AnswerLoader';
 import { Markdown } from './Markdown';
 import { buttonClass, IconButton, inputClass, primaryButtonClass } from './ui';
 
 const ChartBlock = lazy(() => import('./ChartBlock'));
-// The loader's animation library (GSAP) stays out of the app shell.
-const AnswerLoader = lazy(() => import('./AnswerLoader').then((m) => ({ default: m.AnswerLoader })));
 
 interface Props {
   message: ChatMessage;
@@ -103,7 +102,11 @@ function ToolRunRow({ run, onDecide }: { run: ToolRun; onDecide: (decision: Tool
     <li className={cn('px-3 py-2', waiting && 'bg-amber-500/10')}>
       <details open={waiting} className="group/run">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-xs">
-          {run.status === 'running' ? <LoaderCircle size={13} className="shrink-0 animate-spin text-amber-600" /> : <Plug size={13} className={cn('shrink-0', tone)} />}
+          {run.status === 'running' ? (
+            <LoaderCircle size={13} className="shrink-0 animate-spin text-amber-600" />
+          ) : (
+            <Plug size={13} className={cn('shrink-0', tone)} />
+          )}
           <span className="min-w-0 flex-1 truncate">
             <span className="font-semibold text-ink">{run.tool}</span>
             <span className="text-muted"> · {run.connector}</span>
@@ -113,18 +116,27 @@ function ToolRunRow({ run, onDecide }: { run: ToolRun; onDecide: (decision: Tool
         </summary>
         {waiting && (
           <p className="mt-2 text-xs leading-relaxed text-ink">
-            CaptBot wants to run <b>{run.tool}</b> on <b>{run.connector}</b> with the input below. Check it before you allow it: whatever it sends goes to that server.
+            CaptBot wants to run <b>{run.tool}</b> on <b>{run.connector}</b> with the input below. Check it before you allow it: whatever it sends goes to that
+            server.
           </p>
         )}
         {run.args && run.args !== '{}' && (
-          <pre className="scrollbar-thin mt-2 max-h-40 overflow-auto rounded-lg bg-canvas p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-ink ring-1 ring-line">{run.args}</pre>
+          <pre className="scrollbar-thin mt-2 max-h-40 overflow-auto rounded-lg bg-canvas p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-ink ring-1 ring-line">
+            {run.args}
+          </pre>
         )}
         {run.output && !waiting && (
-          <pre className="scrollbar-thin mt-2 max-h-48 overflow-auto rounded-lg bg-canvas p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-muted ring-1 ring-line">{run.output}</pre>
+          <pre className="scrollbar-thin mt-2 max-h-48 overflow-auto rounded-lg bg-canvas p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-muted ring-1 ring-line">
+            {run.output}
+          </pre>
         )}
         {waiting && (
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <button type="button" onClick={() => onDecide('once')} className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-bold text-gray-950 hover:bg-accent-400">
+            <button
+              type="button"
+              onClick={() => onDecide('once')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-bold text-gray-950 hover:bg-accent-400"
+            >
               <Check size={13} /> Allow once
             </button>
             <button
@@ -135,7 +147,11 @@ function ToolRunRow({ run, onDecide }: { run: ToolRun; onDecide: (decision: Tool
             >
               <ShieldCheck size={13} /> Always allow
             </button>
-            <button type="button" onClick={() => onDecide('deny')} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-500/10 dark:text-red-400">
+            <button
+              type="button"
+              onClick={() => onDecide('deny')}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-500/10 dark:text-red-400"
+            >
               <X size={13} /> Deny
             </button>
           </div>
@@ -173,7 +189,7 @@ function Steps({ steps, done }: { steps: ResearchStep[]; done: boolean }) {
       >
         <BrainCircuit size={14} className={cn(!done && 'animate-pulse')} />
         Deep Research
-        <span className="ml-auto font-normal text-accent-500/80">{done ? plural(steps.length, 'step') : 'working…'}</span>
+        <span className="ml-auto font-normal text-accent-700 dark:text-accent-400">{done ? plural(steps.length, 'step') : 'working…'}</span>
         {done && <ChevronDown size={14} className={cn('transition', expanded && 'rotate-180')} />}
       </button>
       {expanded && (
@@ -182,8 +198,8 @@ function Steps({ steps, done }: { steps: ResearchStep[]; done: boolean }) {
             <li key={s.id} className="flex items-start gap-2 text-xs">
               <StepIcon status={s.status} />
               <span className="min-w-0">
-                <span className="text-gray-700 dark:text-gray-300">{s.label}</span>
-                {s.detail && <span className="block text-gray-500">{s.detail}</span>}
+                <span className="text-ink">{s.label}</span>
+                {s.detail && <span className="block text-muted">{s.detail}</span>}
               </span>
             </li>
           ))}
@@ -200,14 +216,14 @@ function SourceCard({ source, cited, onOpen }: { source: SourceRef; cited: boole
       onClick={() => onOpen(source.n)}
       className={cn(
         'lift flex w-full items-start gap-2.5 rounded-xl border bg-surface p-2.5 text-left hover:border-accent-400 dark:hover:border-accent-600',
-        cited ? 'border-gray-200 dark:border-gray-800' : 'border-dashed border-gray-200 opacity-80 dark:border-gray-800',
+        cited ? 'border-line' : 'border-dashed border-line opacity-80',
       )}
     >
       <span className="cite-chip mt-0.5 shrink-0">{source.n}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-semibold text-gray-800 dark:text-gray-200">{source.docName}</span>
-        {meta && <span className="block truncate text-[11px] text-gray-500">{meta}</span>}
-        <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{source.text}</span>
+        <span className="block truncate text-xs font-semibold text-ink">{source.docName}</span>
+        {meta && <span className="block truncate text-[11px] text-muted">{meta}</span>}
+        <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{source.text}</span>
       </span>
     </button>
   );
@@ -264,7 +280,7 @@ function WebList({ sources }: { sources: WebSource[] }) {
           href={s.uri}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex max-w-[220px] items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-gray-600 transition hover:border-sky-300 hover:text-sky-700 dark:border-gray-800 dark:bg-white/5 dark:text-gray-400"
+          className="flex max-w-[220px] items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] text-muted transition hover:border-accent-500/50 hover:text-ink"
         >
           <ExternalLink size={10} className="shrink-0" />
           <span className="truncate">{s.title}</span>
@@ -277,7 +293,9 @@ function WebList({ sources }: { sources: WebSource[] }) {
 const RERANK_LABEL = { none: 'no reranking', local: 'reranked locally', llm: 'reranked by LLM' } as const;
 
 function TraceDetails({ trace, research }: { trace: RetrievalTrace; research: boolean }) {
-  const searched = research ? plural(trace.query.split(' | ').length, 'search') : `Searched “${trace.query}”${trace.rewritten ? ' (your follow-up, rewritten)' : ''}`;
+  const searched = research
+    ? plural(trace.query.split(' | ').length, 'search')
+    : `Searched “${trace.query}”${trace.rewritten ? ' (your follow-up, rewritten)' : ''}`;
   return (
     <div className="anim-fade mt-2.5 space-y-1.5 rounded-lg bg-canvas px-3 py-2 text-[11px] leading-relaxed text-muted ring-1 ring-line">
       <div className="break-words">
@@ -328,7 +346,12 @@ function SetupPrompt({ onOpenSettings, onRetry }: { onOpenSettings: () => void; 
             {page && (
               <>
                 {' '}
-                <a href={page} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent-700 underline underline-offset-2 dark:text-accent-300">
+                <a
+                  href={page}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-accent-700 underline underline-offset-2 dark:text-accent-300"
+                >
                   Get a key
                 </a>
               </>
@@ -378,7 +401,10 @@ function ErrorBox({ error, onOpenSettings, onRetry }: { error: string; onOpenSet
             </button>
           )}
           {onRetry && (
-            <button onClick={onRetry} className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/40">
+            <button
+              onClick={onRetry}
+              className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/40"
+            >
               Try again
             </button>
           )}
@@ -405,7 +431,10 @@ function UserMessage({ message: m, canEdit, onEdit, onPin, onSavePrompt }: Props
   };
   return (
     <div className="anim-rise group flex gap-3">
-      <div aria-hidden="true" className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-raised text-[10px] font-bold text-ink ring-1 ring-line">
+      <div
+        aria-hidden="true"
+        className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-raised text-[10px] font-bold text-ink ring-1 ring-line"
+      >
         You
       </div>
       <div className="min-w-0 flex-1">
@@ -418,9 +447,16 @@ function UserMessage({ message: m, canEdit, onEdit, onPin, onSavePrompt }: Props
         {/* Image data stays on the device it was sent from; other devices just see the text. */}
         {m.images?.some((img) => img.data) ? (
           <div className="mb-2 flex flex-wrap gap-2">
-            {m.images.filter((img) => img.data).map((img, i) => (
-              <img key={i} src={`data:${img.mimeType};base64,${img.data}`} alt={img.name} className="h-24 max-w-[200px] rounded-xl border border-line object-cover" />
-            ))}
+            {m.images
+              .filter((img) => img.data)
+              .map((img, i) => (
+                <img
+                  key={i}
+                  src={`data:${img.mimeType};base64,${img.data}`}
+                  alt={img.name}
+                  className="h-24 max-w-[200px] rounded-xl border border-line object-cover"
+                />
+              ))}
           </div>
         ) : null}
         {draft !== null ? (
@@ -531,19 +567,28 @@ function AssistantMessage({ message: m, streaming, canRetry, onCite, onRetry, on
           {m.steps?.length ? <Steps steps={m.steps} done={!streaming} /> : null}
           {m.toolRuns?.length ? <ToolRuns runs={m.toolRuns} onDecide={onToolDecision} /> : null}
           {waiting && !m.steps?.length && !m.toolRuns?.length ? (
-            <Suspense fallback={null}>
-              <AnswerLoader phase={phase} label={status ?? undefined} />
-            </Suspense>
+            <AnswerLoader phase={phase} label={status ?? undefined} />
           ) : (
             status && (
-              <div role="status" aria-live="polite" className={cn('mb-2 flex items-center gap-2 text-xs font-medium', waitingRun ? 'text-amber-700 dark:text-amber-400' : 'text-muted')}>
+              <div
+                role="status"
+                aria-live="polite"
+                className={cn('mb-2 flex items-center gap-2 text-xs font-medium', waitingRun ? 'text-amber-700 dark:text-amber-400' : 'text-muted')}
+              >
                 {!waitingRun && <LoaderCircle size={13} className="animate-spin" />}
                 {status}
               </div>
             )
           )}
           {m.content && (
-            <Markdown content={m.content} sourceCount={sources.length} onCite={(n) => onCite(m, n)} citeTitle={citeTitle} citeSource={(n) => sources[n - 1]} streaming={streaming} />
+            <Markdown
+              content={m.content}
+              sourceCount={sources.length}
+              onCite={(n) => onCite(m, n)}
+              citeTitle={citeTitle}
+              citeSource={(n) => sources[n - 1]}
+              streaming={streaming}
+            />
           )}
           {m.aborted && <div className="mt-2 text-xs font-medium text-muted">Stopped</div>}
           {m.error && <ErrorBox error={m.error} onOpenSettings={onOpenSettings} onRetry={canRetry ? () => onRetry(m) : undefined} />}
@@ -565,7 +610,10 @@ function AssistantMessage({ message: m, streaming, canRetry, onCite, onRetry, on
                   onClick={() => setDetails((d) => !d)}
                   aria-expanded={details}
                   title={m.trace.warning ? 'How this answer was found (has a note)' : 'How this answer was found'}
-                  className={cn('relative inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-muted transition hover:bg-canvas hover:text-ink', details && 'bg-canvas text-ink')}
+                  className={cn(
+                    'relative inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-muted transition hover:bg-canvas hover:text-ink',
+                    details && 'bg-canvas text-ink',
+                  )}
                 >
                   <Info size={13} /> Details
                   {m.trace.warning && <span className="absolute top-1 left-[18px] h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="Has a note" />}

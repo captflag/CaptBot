@@ -18,7 +18,6 @@ function Chip({
   icon,
   label,
   title,
-  tone,
 }: {
   active: boolean;
   disabled?: boolean;
@@ -26,7 +25,6 @@ function Chip({
   icon: ReactNode;
   label: string;
   title: string;
-  tone: 'violet' | 'sky';
 }) {
   return (
     <button
@@ -36,16 +34,16 @@ function Chip({
       title={title}
       aria-pressed={active}
       className={cn(
-        'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40',
+        // Phones show only the icon (green when on), so the row fits on one line beside the model switcher.
+        'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 max-sm:px-2.5',
+        // One "on" look for every switch: the green accent, the same in both themes.
         active
-          ? tone === 'violet'
-            ? 'border-accent-200 bg-accent-100 text-accent-700 dark:border-accent-800 dark:bg-accent-900/50 dark:text-accent-300'
-            : 'border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-800 dark:bg-sky-900/50 dark:text-sky-300'
-          : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10',
+          ? 'border-accent-500/40 bg-accent-500/15 text-accent-700 dark:text-accent-300'
+          : 'border-line bg-canvas text-muted hover:border-accent-500/40 hover:text-ink',
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className="whitespace-nowrap max-sm:sr-only">{label}</span>
     </button>
   );
 }
@@ -121,13 +119,31 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
   const commands = useMemo<Command[]>(() => {
     if (slash === null) return [];
     const toggles: Command[] = [
-      { key: 'research', label: '/research', hint: deep ? 'Turn Deep Research off' : 'Plan sub-questions and write a cited report', icon: <BrainCircuit size={14} />, run: () => setDeep((d) => !d) },
+      {
+        key: 'research',
+        label: '/research',
+        hint: deep ? 'Turn Deep Research off' : 'Plan sub-questions and write a cited report',
+        icon: <BrainCircuit size={14} />,
+        run: () => setDeep((d) => !d),
+      },
     ];
     if (webSearchAvailable) {
-      toggles.push({ key: 'web', label: '/web', hint: web ? 'Turn web search off' : 'Also ground the answer with web search', icon: <Globe size={14} />, run: () => setWeb((w) => !w) });
+      toggles.push({
+        key: 'web',
+        label: '/web',
+        hint: web ? 'Turn web search off' : 'Also ground the answer with web search',
+        icon: <Globe size={14} />,
+        run: () => setWeb((w) => !w),
+      });
     }
     if (connectorCount > 0 && !toolsBlocked) {
-      toggles.push({ key: 'tools', label: '/tools', hint: tools ? 'Turn connector tools off' : 'Let the answer use your connectors', icon: <Plug size={14} />, run: () => setTools((t) => !t) });
+      toggles.push({
+        key: 'tools',
+        label: '/tools',
+        hint: tools ? 'Turn connector tools off' : 'Let the answer use your connectors',
+        icon: <Plug size={14} />,
+        run: () => setTools((t) => !t),
+      });
     }
     const saved = prompts
       .filter((p) => p.text.toLowerCase().includes(slash))
@@ -168,7 +184,11 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
   return (
     <div className="relative rounded-2xl border border-line bg-surface p-2.5 shadow-[0_10px_30px_-18px_rgb(0_0_0/0.35)] transition-colors focus-within:border-accent-400 dark:focus-within:border-accent-600">
       {commands.length > 0 && (
-        <div role="listbox" aria-label="Commands" className="anim-rise absolute bottom-full left-0 z-30 mb-2 w-full max-w-md rounded-xl border border-line bg-raised p-1.5 shadow-xl">
+        <div
+          role="listbox"
+          aria-label="Commands"
+          className="anim-rise absolute bottom-full left-0 z-30 mb-2 w-full max-w-md rounded-xl border border-line bg-raised p-1.5 shadow-xl"
+        >
           {commands.map((c, i) => (
             <button
               key={c.key}
@@ -181,7 +201,9 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
               onClick={() => pick(c)}
               className={cn('flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left', i === cmd && 'bg-canvas ring-1 ring-line')}
             >
-              <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-md', i === cmd ? 'bg-accent-500 text-gray-950' : 'bg-canvas text-muted')}>{c.icon}</span>
+              <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-md', i === cmd ? 'bg-accent-500 text-gray-950' : 'bg-canvas text-muted')}>
+                {c.icon}
+              </span>
               <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{c.label}</span>
               <span className="shrink-0 text-[11px] text-muted">{c.hint}</span>
             </button>
@@ -195,7 +217,7 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
               <img src={`data:${img.mimeType};base64,${img.data}`} alt={img.name} className="h-14 w-14 rounded-lg object-cover" />
               <button
                 onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                className="absolute -top-1.5 -right-1.5 rounded-full bg-gray-900 p-0.5 text-white dark:bg-white dark:text-black"
+                className="absolute -top-1.5 -right-1.5 rounded-full bg-ink p-0.5 text-surface"
                 aria-label={`Remove ${img.name}`}
               >
                 <X size={10} />
@@ -237,17 +259,16 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
         }}
         placeholder={deep ? 'Ask a research question…' : 'Ask about your documents, or type / for commands'}
         aria-label="Message"
-        className="scrollbar-thin max-h-60 w-full resize-none bg-transparent px-2 py-2 text-[15px] text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100"
+        className="scrollbar-thin max-h-60 w-full resize-none bg-transparent px-2 py-2 text-[15px] text-ink outline-none placeholder:text-muted"
       />
       <div className="flex items-center justify-between gap-2 px-1 pt-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
           <Chip
             active={deep}
             onClick={() => setDeep((d) => !d)}
             icon={<BrainCircuit size={14} />}
             label="Deep Research"
             title="Plan sub-questions, search your documents for each, and write a cited report"
-            tone="violet"
           />
           <Chip
             active={web && webSearchAvailable}
@@ -256,7 +277,6 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
             icon={<Globe size={14} />}
             label="Web"
             title={webSearchAvailable ? 'Also ground answers with Google Search' : 'Web search is available with Gemini models'}
-            tone="sky"
           />
           {connectorCount > 0 && (
             <Chip
@@ -265,8 +285,10 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
               onClick={() => setTools((t) => !t)}
               icon={<Plug size={14} />}
               label={`Tools · ${connectorCount}`}
-              title={toolsBlocked ?? `Let the answer call tools from your ${connectorCount === 1 ? 'connector' : `${connectorCount} connectors`}. Each call asks first unless you allowed it always.`}
-              tone="violet"
+              title={
+                toolsBlocked ??
+                `Let the answer call tools from your ${connectorCount === 1 ? 'connector' : `${connectorCount} connectors`}. Each call asks first unless you allowed it always.`
+              }
             />
           )}
           <button
@@ -274,7 +296,7 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
             onClick={() => fileRef.current?.click()}
             title="Attach images"
             aria-label="Attach images"
-            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-200"
+            className="rounded-lg p-2 text-muted transition hover:bg-canvas hover:text-ink"
           >
             <Paperclip size={17} />
           </button>
@@ -290,7 +312,7 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
             }}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/* On the free tier the server picks the model, so there is nothing to switch. */}
           {hasChatKey(settings) && (
             <select
@@ -298,7 +320,7 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
               onChange={(e) => updateSettings((s) => ({ ...s, chat: { ...s.chat, model: e.target.value } }))}
               aria-label="Model for answers"
               title={`Answering with ${settings.chat.model} (${CHAT_PRESETS[settings.chat.provider].label}). Change the provider in Settings.`}
-              className="hidden max-w-[170px] cursor-pointer truncate rounded-full border border-line bg-canvas py-1.5 pr-7 pl-3 text-xs font-semibold text-ink transition outline-none hover:border-accent-500 focus-visible:border-accent-500 sm:block"
+              className="max-w-[128px] shrink-0 cursor-pointer truncate rounded-full border border-line bg-canvas py-1.5 pr-7 pl-3 text-xs font-semibold text-ink transition outline-none hover:border-accent-500 focus-visible:border-accent-500 sm:max-w-[170px]"
             >
               {[...new Set([settings.chat.model, ...CHAT_PRESETS[settings.chat.provider].models])].map((m) => (
                 <option key={m} value={m}>
@@ -308,12 +330,12 @@ export function Composer({ busy, onSend, onStop, webSearchAvailable, connectorCo
             </select>
           )}
           {tooLong && (
-            <span className="text-xs text-red-500">
+            <span className="text-xs text-red-600 dark:text-red-400">
               {text.length.toLocaleString()} / {MAX_CHARS.toLocaleString()}
             </span>
           )}
           {busy ? (
-            <button onClick={onStop} title="Stop" aria-label="Stop" className="rounded-xl bg-gray-900 p-2 text-white shadow-md hover:opacity-80 dark:bg-white dark:text-black">
+            <button onClick={onStop} title="Stop" aria-label="Stop" className="rounded-xl bg-ink p-2 text-surface shadow-md hover:opacity-80">
               <Square size={15} fill="currentColor" />
             </button>
           ) : (

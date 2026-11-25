@@ -39,15 +39,40 @@ export function Logo({ size = 'md', className, busy = false, withWord = false }:
         <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#0b0d10" stroke="#262b33" />
         {/* The resting angles live on the wrappers, so the arcs' own animations can turn them freely. */}
         <g transform="rotate(47 24 24)">
-          <circle className="mark-outer" cx="24" cy="24" r="15" fill="none" stroke={`url(#${gradient})`} strokeWidth="4.5" strokeLinecap="round" strokeDasharray="70 24.2" />
+          <circle
+            className="mark-outer"
+            cx="24"
+            cy="24"
+            r="15"
+            fill="none"
+            stroke={`url(#${gradient})`}
+            strokeWidth="4.5"
+            strokeLinecap="round"
+            strokeDasharray="70 24.2"
+          />
         </g>
         <g transform="rotate(54 24 24)">
-          <circle className="mark-inner" cx="24" cy="24" r="8.5" fill="none" stroke="#eef1f4" strokeWidth="3.4" strokeLinecap="round" strokeDasharray="38 15.4" opacity="0.9" />
+          <circle
+            className="mark-inner"
+            cx="24"
+            cy="24"
+            r="8.5"
+            fill="none"
+            stroke="#eef1f4"
+            strokeWidth="3.4"
+            strokeLinecap="round"
+            strokeDasharray="38 15.4"
+            opacity="0.9"
+          />
         </g>
         <circle className="mark-dot" cx="35.5" cy="24" r="2.6" fill="#3dffb0" />
       </svg>
       {withWord && (
-        <span aria-hidden="true" className="logo-word inline-flex leading-none font-extrabold whitespace-nowrap text-ink" style={{ fontFamily: "'Geist', var(--font-sans)", fontSize: px * 0.88, letterSpacing: '-0.06em' }}>
+        <span
+          aria-hidden="true"
+          className="logo-word inline-flex leading-none font-extrabold whitespace-nowrap text-ink"
+          style={{ fontFamily: "'Geist', var(--font-sans)", fontSize: px * 0.88, letterSpacing: '-0.06em' }}
+        >
           {[...'capt'].map((letter, i) => (
             <i key={i} style={{ '--i': i } as CSSProperties}>
               {letter}

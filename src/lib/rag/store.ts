@@ -72,9 +72,7 @@ class KnowledgeStore {
     if (this.lexicalReady) this.lexical.add(chunks.map((c) => toLexical(c, doc.name)));
     if (this.vectorKey) {
       this.vectors.removeDocs(new Set([doc.id]));
-      this.vectors.add(
-        vectors.filter((v) => v.embeddingKey === this.vectorKey).map((v) => ({ id: v.chunkId, docId: v.docId, vector: v.vector })),
-      );
+      this.vectors.add(vectors.filter((v) => v.embeddingKey === this.vectorKey).map((v) => ({ id: v.chunkId, docId: v.docId, vector: v.vector })));
     }
     channel?.postMessage('changed');
   }

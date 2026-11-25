@@ -69,7 +69,10 @@ export function LoginPage({ children, notice }: { children: ReactNode; notice?: 
         <main className="grid flex-1 items-center gap-10 px-5 pt-4 pb-10 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:gap-14 lg:px-14">
           <section className="flex flex-col gap-7">
             <div className="flex flex-col gap-4">
-              <div className="anim-rise inline-flex w-fit items-center gap-2 rounded-full bg-accent-500/15 px-3 py-1 text-[11px] font-bold tracking-wider text-accent-700 uppercase dark:text-accent-300" style={delay(60)}>
+              <div
+                className="anim-rise inline-flex w-fit items-center gap-2 rounded-full bg-accent-500/15 px-3 py-1 text-[11px] font-bold tracking-wider text-accent-700 uppercase dark:text-accent-300"
+                style={delay(60)}
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
                 Private research assistant
               </div>

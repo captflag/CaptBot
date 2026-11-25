@@ -1,6 +1,6 @@
 // CJK punctuation, kana, Han and Hangul, and full-width forms: roughly one token per character,
 // where alphabetic text runs about four characters per token.
-const CJK = /[　-〿぀-ヿ㐀-䶿一-鿿가-힯豈-﫿＀-￯]/g;
+const CJK = /[\u3000-\u303f\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/g;
 
 function cjkCount(text: string): number {
   return text.match(CJK)?.length ?? 0;

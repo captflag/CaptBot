@@ -1,17 +1,18 @@
+import Dexie from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Bookmark, Check, ListFilter, MessageSquare, PanelLeftClose, Pencil, Plus, Search, Star, Trash } from 'lucide-react';
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { Bookmark, ListFilter, MessageSquare, PanelLeftClose, Pencil, Plus, Search, Star, Trash } from 'lucide-react';
+import { Fragment, useState, type CSSProperties, type FormEvent } from 'react';
 import { db, deleteThread } from '../lib/db';
 import { stripCitations } from '../lib/rag/citations';
 import { useSettings } from '../lib/settings';
 import { toggleStar, useStarred } from '../lib/stars';
 import type { Collection, SavedPrompt, Thread } from '../lib/types';
 import { cn } from '../lib/utils';
+import { Menu, MenuItem } from './Menu';
 import { UsageMeter } from './UsageMeter';
 import { IconButton, inputClass } from './ui';
 
 type Tab = 'chats' | 'saved';
-
 
 /** A time today, a weekday this week, otherwise a date. */
 function when(ts: number): string {
@@ -53,39 +54,47 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
   const starred = useStarred();
   /** Show only chats that search this collection; null shows all of them. */
   const [filterId, setFilterId] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
   const needle = query.trim().toLowerCase();
 
-  useEffect(() => {
-    if (!filterOpen) return;
-    const close = (e: MouseEvent) => {
-      if (!filterRef.current?.contains(e.target as Node)) setFilterOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [filterOpen]);
-
-  // ponytail: one pass over every message whenever a message is saved (and per keystroke while
-  // searching). Fine for thousands; keep a per-chat preview field and a search index beyond that.
-  const scan = useLiveQuery(
+  // Each chat's newest message, for the line under its title: one short lookup per chat through the
+  // [threadId+createdAt] index, instead of reading every message whenever anything changes.
+  const previews = useLiveQuery(
     async () => {
       const last = new Map<string, string>();
-      const hits = new Set<string>();
-      await db.messages.orderBy('[threadId+createdAt]').each((m) => {
-        if (m.content) last.set(m.threadId, m.content);
-        if (needle && m.content.toLowerCase().includes(needle)) hits.add(m.threadId);
-      });
-      return { last, hits };
+      await Promise.all(
+        threads.map(async (t) => {
+          const m = await db.messages
+            .where('[threadId+createdAt]')
+            .between([t.id, Dexie.minKey], [t.id, Dexie.maxKey])
+            .reverse()
+            .filter((x) => Boolean(x.content))
+            .first();
+          if (m) last.set(t.id, m.content);
+        }),
+      );
+      return last;
+    },
+    [threads],
+    new Map<string, string>(),
+  );
+
+  // Chats whose messages contain the search text. Only read while something is typed.
+  // ponytail: still a pass over every message per keystroke; a full-text index (MiniSearch is
+  // already a dependency) is the step up once chats run into the thousands.
+  const hits = useLiveQuery(
+    async () => {
+      const ids = new Set<string>();
+      if (needle) await db.messages.filter((m) => m.content.toLowerCase().includes(needle)).each((m) => ids.add(m.threadId));
+      return ids;
     },
     [needle],
-    { last: new Map<string, string>(), hits: new Set<string>() },
+    new Set<string>(),
   );
 
   // A filter on a collection that has since been deleted shows everything again.
   const filter = collections.find((c) => c.id === filterId) ?? null;
   const shownThreads = threads
-    .filter((t) => (!filter || t.collectionIds.includes(filter.id)) && (!needle || t.title.toLowerCase().includes(needle) || scan.hits.has(t.id)))
+    .filter((t) => (!filter || t.collectionIds.includes(filter.id)) && (!needle || t.title.toLowerCase().includes(needle) || hits.has(t.id)))
     // Starred chats first; within each group the newest stays on top (the sort is stable).
     .sort((a, b) => Number(starred.has(b.id)) - Number(starred.has(a.id)));
   const shownPrompts = needle ? prompts.filter((p) => p.text.toLowerCase().includes(needle)) : prompts;
@@ -93,7 +102,9 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
 
   const rename = async (e: FormEvent<HTMLFormElement>, id: string) => {
     e.preventDefault();
-    const title = String(new FormData(e.currentTarget).get('title') ?? '').trim().slice(0, 200);
+    const title = String(new FormData(e.currentTarget).get('title') ?? '')
+      .trim()
+      .slice(0, 200);
     if (title) await db.threads.update(id, { title });
     setEditing(null);
   };
@@ -175,42 +186,28 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
           </label>
           {/* Filtering is by collection, so the button only exists once there is a collection to pick. */}
           {tab === 'chats' && collections.length > 0 && (
-            <div ref={filterRef} className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setFilterOpen((o) => !o)}
-                aria-haspopup="menu"
-                aria-expanded={filterOpen}
+            <div className="shrink-0">
+              <Menu
+                label={filter ? `Showing chats in ${filter.name}. Change filter` : 'Filter chats by collection'}
                 title={filter ? `Showing chats in ${filter.name}` : 'Filter chats by collection'}
-                aria-label={filter ? `Showing chats in ${filter.name}. Change filter` : 'Filter chats by collection'}
-                className={cn(
+                heading="Show chats in"
+                button={<ListFilter size={16} />}
+                buttonClassName={cn(
                   'grid h-[38px] w-[38px] place-items-center rounded-xl transition',
                   filter ? 'bg-accent-500 text-gray-950' : 'bg-canvas text-accent-600 hover:bg-accent-500/15 dark:text-accent-400',
                 )}
               >
-                <ListFilter size={16} />
-              </button>
-              {filterOpen && (
-                <div role="menu" className="anim-fade absolute top-full right-0 z-50 mt-1.5 w-56 rounded-xl border border-line bg-raised p-1.5 shadow-xl">
-                  <div className="px-2 pt-1 pb-1.5 font-mono text-[10px] tracking-wider text-muted uppercase">Show chats in</div>
-                  {[{ id: null as string | null, name: 'All chats', color: undefined as string | undefined }, ...collections].map((c) => (
-                    <button
-                      key={c.id ?? 'all'}
-                      role="menuitemradio"
-                      aria-checked={filterId === c.id}
-                      onClick={() => {
-                        setFilterId(c.id);
-                        setFilterOpen(false);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-ink hover:bg-canvas"
-                    >
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.color ?? 'var(--color-gray-400)' }} />
-                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                      {(filter?.id ?? null) === c.id && <Check size={13} className="text-accent-600 dark:text-accent-400" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+                {[{ id: null as string | null, name: 'All chats', color: 'var(--color-gray-400)' }, ...collections].map((c) => (
+                  <MenuItem
+                    key={c.id ?? 'all'}
+                    kind="radio"
+                    label={c.name}
+                    swatch={c.color}
+                    checked={(filter?.id ?? null) === c.id}
+                    onSelect={() => setFilterId(c.id)}
+                  />
+                ))}
+              </Menu>
             </div>
           )}
         </div>
@@ -221,77 +218,94 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
               <div className="px-3 py-10 text-center">
                 <div className="text-[13px] font-bold text-ink">{threads.length ? 'No chats match' : 'No chats yet'}</div>
                 <div className="mt-1 text-xs text-muted">
-                  {!threads.length ? 'Ask a question and it is saved here.' : filter && !needle ? `No chats search ${filter.name} yet.` : 'Titles and messages were searched.'}
+                  {!threads.length
+                    ? 'Ask a question and it is saved here.'
+                    : filter && !needle
+                      ? `No chats search ${filter.name} yet.`
+                      : 'Titles and messages were searched.'}
                 </div>
               </div>
             ) : (
               shownThreads.map((t, i) => {
                 const active = t.id === activeId;
                 const isStarred = starred.has(t.id);
-                const preview = scan.last.get(t.id);
+                const preview = previews.get(t.id);
                 // With any starred chats, the list gets two labelled parts: Starred, then everything else.
                 const anyStarred = starred.has(shownThreads[0].id);
                 const label = !anyStarred ? null : i === 0 ? 'Starred' : !isStarred && starred.has(shownThreads[i - 1].id) ? 'Recent' : null;
                 return (
                   <Fragment key={t.id}>
-                  {label && (
-                    <h3 className={cn('flex items-center gap-1.5 px-2 pb-1 font-mono text-[10px] tracking-wider text-muted uppercase', i > 0 && 'pt-3')}>
-                      {label === 'Starred' && <Star size={10} className="fill-amber-400 text-amber-400" />}
-                      {label}
-                    </h3>
-                  )}
-                  <div
-                    // Rows arrive one after another; only the first screenful is staggered.
-                    style={{ '--d': `${Math.min(i, 14) * 22}ms` } as CSSProperties}
-                    className={cn('anim-rise group relative rounded-xl transition-colors', active ? 'bg-canvas ring-1 ring-line' : 'hover:bg-canvas/70')}
-                  >
-                    {editing === t.id ? (
-                      <form onSubmit={(e) => void rename(e, t.id)} className="p-2">
-                        <input name="title" autoFocus defaultValue={t.title} aria-label="Chat title" onBlur={(e) => e.currentTarget.form?.requestSubmit()} className={cn(inputClass, 'py-1.5 text-[13px]')} />
-                      </form>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => onSelect(t.id)}
-                          onDoubleClick={() => setEditing(t.id)}
-                          aria-current={active ? 'true' : undefined}
-                          className="block w-full px-3 py-2.5 text-left"
-                        >
-                          <span className="flex items-center gap-2">
-                            {isStarred ? (
-                              <Star size={11} className="-mx-px shrink-0 fill-amber-400 text-amber-400" aria-label="Starred" />
-                            ) : (
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ background: t.collectionIds.length ? (colorOf.get(t.collectionIds[0]) ?? 'var(--color-gray-400)') : active ? 'var(--color-accent-500)' : 'var(--color-gray-400)' }}
-                              />
-                            )}
-                            <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{t.title}</span>
-                            <span className="shrink-0 text-[10px] text-muted tabular-nums">{when(t.updatedAt)}</span>
-                          </span>
-                          {preview && <span className="mt-1 line-clamp-2 block pl-4 text-xs leading-relaxed text-muted">{plain(preview)}</span>}
-                        </button>
-                        <div className="absolute right-1.5 bottom-1.5 flex rounded-lg bg-surface shadow-sm ring-1 ring-line sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-                          <IconButton title={isStarred ? 'Remove star' : 'Star: keep at the top'} onClick={() => toggleStar(t.id)} active={isStarred}>
-                            <Star size={12} className={isStarred ? 'fill-current' : undefined} />
-                          </IconButton>
-                          <IconButton title="Rename" onClick={() => setEditing(t.id)}>
-                            <Pencil size={12} />
-                          </IconButton>
-                          <IconButton
-                            title="Delete chat"
-                            onClick={async () => {
-                              if (!confirm(`Delete “${t.title}”?`)) return;
-                              await deleteThread(t.id);
-                              onDeleted(t.id);
-                            }}
-                          >
-                            <Trash size={12} />
-                          </IconButton>
-                        </div>
-                      </>
+                    {label && (
+                      <h3 className={cn('flex items-center gap-1.5 px-2 pb-1 font-mono text-[10px] tracking-wider text-muted uppercase', i > 0 && 'pt-3')}>
+                        {label === 'Starred' && <Star size={10} className="fill-amber-400 text-amber-400" />}
+                        {label}
+                      </h3>
                     )}
-                  </div>
+                    <div
+                      // Rows arrive one after another; only the first screenful is staggered.
+                      style={{ '--d': `${Math.min(i, 14) * 22}ms` } as CSSProperties}
+                      className={cn('anim-rise group relative rounded-xl transition-colors', active ? 'bg-canvas ring-1 ring-line' : 'hover:bg-canvas/70')}
+                    >
+                      {editing === t.id ? (
+                        <form onSubmit={(e) => void rename(e, t.id)} className="p-2">
+                          <input
+                            name="title"
+                            autoFocus
+                            defaultValue={t.title}
+                            aria-label="Chat title"
+                            onBlur={(e) => e.currentTarget.form?.requestSubmit()}
+                            className={cn(inputClass, 'py-1.5 text-[13px]')}
+                          />
+                        </form>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => onSelect(t.id)}
+                            onDoubleClick={() => setEditing(t.id)}
+                            aria-current={active ? 'true' : undefined}
+                            className="block w-full px-3 py-2.5 text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              {isStarred ? (
+                                <Star size={11} className="-mx-px shrink-0 fill-amber-400 text-amber-400" aria-label="Starred" />
+                              ) : (
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{
+                                    background: t.collectionIds.length
+                                      ? (colorOf.get(t.collectionIds[0]) ?? 'var(--color-gray-400)')
+                                      : active
+                                        ? 'var(--color-accent-500)'
+                                        : 'var(--color-gray-400)',
+                                  }}
+                                />
+                              )}
+                              <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{t.title}</span>
+                              <span className="shrink-0 text-[10px] text-muted tabular-nums">{when(t.updatedAt)}</span>
+                            </span>
+                            {preview && <span className="mt-1 line-clamp-2 block pl-4 text-xs leading-relaxed text-muted">{plain(preview)}</span>}
+                          </button>
+                          <div className="absolute right-1.5 bottom-1.5 flex rounded-lg bg-surface shadow-sm ring-1 ring-line sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+                            <IconButton title={isStarred ? 'Remove star' : 'Star: keep at the top'} onClick={() => toggleStar(t.id)} active={isStarred}>
+                              <Star size={12} className={isStarred ? 'fill-current' : undefined} />
+                            </IconButton>
+                            <IconButton title="Rename" onClick={() => setEditing(t.id)}>
+                              <Pencil size={12} />
+                            </IconButton>
+                            <IconButton
+                              title="Delete chat"
+                              onClick={async () => {
+                                if (!confirm(`Delete “${t.title}”?`)) return;
+                                await deleteThread(t.id);
+                                onDeleted(t.id);
+                              }}
+                            >
+                              <Trash size={12} />
+                            </IconButton>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </Fragment>
                 );
               })
@@ -301,7 +315,9 @@ export function ChatList({ open, onClose, activeId, onSelect, onDeleted, onNewCh
             (shownPrompts.length === 0 ? (
               <div className="px-3 py-10 text-center">
                 <div className="text-[13px] font-bold text-ink">{prompts.length ? 'No saved prompts match' : 'Nothing saved yet'}</div>
-                <div className="mt-1 text-xs text-muted">{prompts.length ? 'Try a different word.' : 'Hover a message you sent and press the bookmark to keep it here.'}</div>
+                <div className="mt-1 text-xs text-muted">
+                  {prompts.length ? 'Try a different word.' : 'Hover a message you sent and press the bookmark to keep it here.'}
+                </div>
               </div>
             ) : (
               shownPrompts.map((p, i) => (

@@ -14,7 +14,5 @@ export function reciprocalRankFusion(lists: Ranked[][], k = 60): Ranked[] {
       scores.set(item.id, (scores.get(item.id) ?? 0) + 1 / (k + rank + 1));
     });
   }
-  return [...scores]
-    .map(([id, score]) => ({ id, score }))
-    .sort((a, b) => b.score - a.score);
+  return [...scores].map(([id, score]) => ({ id, score })).sort((a, b) => b.score - a.score);
 }

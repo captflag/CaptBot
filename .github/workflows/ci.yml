@@ -15,6 +15,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # ESLint, then Prettier's formatting check.
+      - run: npm run lint
       - run: npm test
       # Type-checks, then builds.
       - run: npm run build

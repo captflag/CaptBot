@@ -15,7 +15,7 @@ import {
   TriangleAlert,
   Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type FormEvent } from 'react';
 import { createCollection, db, deleteCollection } from '../lib/db';
 import { useLocalModelStatus } from '../lib/providers/local';
 import { ACCEPTED_FILE_TYPES } from '../lib/rag/fileTypes';
@@ -26,7 +26,8 @@ import type { Collection, KbDocument } from '../lib/types';
 import { cn, plural } from '../lib/utils';
 import { exportBackup, exportCollection, importFile } from './kbActions';
 import { toast } from './Toaster';
-import { buttonClass, Field, IconButton, inputClass, Modal, primaryButtonClass } from './ui';
+import { Menu, MenuItem } from './Menu';
+import { buttonClass, Field, IconButton, iconButtonClass, inputClass, Modal, primaryButtonClass } from './ui';
 
 type SortKey = 'name' | 'status' | 'size' | 'added';
 type Sort = { key: SortKey; dir: 1 | -1 };
@@ -43,30 +44,25 @@ const COMPARE: Record<SortKey, (a: KbDocument, b: KbDocument) => number> = {
 
 const formatDate = (ts: number) => new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-function CollectionMenu({ doc, collections, onClose }: { doc: KbDocument; collections: Collection[]; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [onClose]);
+/** Which collections a document belongs to, ticked on and off from its row. */
+function CollectionMenu({ doc, collections }: { doc: KbDocument; collections: Collection[] }) {
   const toggle = (id: string) => {
     const next = doc.collectionIds.includes(id) ? doc.collectionIds.filter((c) => c !== id) : [...doc.collectionIds, id];
     void db.documents.update(doc.id, { collectionIds: next });
   };
   return (
-    <div ref={ref} className="anim-fade absolute top-9 right-2 z-30 w-52 rounded-xl border border-line bg-raised p-1.5 text-left shadow-xl">
-      <div className="px-2 pt-1 pb-1.5 font-mono text-[10px] tracking-wider text-muted uppercase">In collections</div>
+    <Menu
+      label={`Collections for ${doc.name}`}
+      title="Collections"
+      heading="In collections"
+      panelClassName="w-52"
+      button={<Layers size={13} />}
+      buttonClassName={(open) => cn(iconButtonClass, open && 'bg-canvas text-ink')}
+    >
       {collections.map((c) => (
-        <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-ink hover:bg-gray-100 dark:hover:bg-white/10">
-          <input type="checkbox" checked={doc.collectionIds.includes(c.id)} onChange={() => toggle(c.id)} className="accent-accent-600" />
-          <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />
-          <span className="truncate">{c.name}</span>
-        </label>
+        <MenuItem key={c.id} kind="checkbox" label={c.name} swatch={c.color} checked={doc.collectionIds.includes(c.id)} onSelect={() => toggle(c.id)} />
       ))}
-    </div>
+    </Menu>
   );
 }
 
@@ -80,7 +76,7 @@ function StatusCell({ doc, stale }: { doc: KbDocument; stale: boolean }) {
   }
   if (doc.status === 'ready') {
     return (
-      <span className={cn('flex items-center gap-1.5', stale ? 'text-amber-700 dark:text-amber-500' : 'text-gray-600 dark:text-gray-300')}>
+      <span className={cn('flex items-center gap-1.5', stale ? 'text-amber-700 dark:text-amber-500' : 'text-muted')}>
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', stale ? 'bg-amber-500' : 'bg-emerald-500')} />
         {stale ? 'Keyword search only' : 'Ready'}
       </span>
@@ -88,10 +84,10 @@ function StatusCell({ doc, stale }: { doc: KbDocument; stale: boolean }) {
   }
   const label = doc.status === 'embedding' ? `Indexing ${Math.round(doc.progress * 100)}%` : doc.status === 'parsing' ? 'Reading' : 'Queued';
   return (
-    <span className="block text-gray-600 dark:text-gray-300">
+    <span className="block text-muted">
       {label}
       {doc.status === 'embedding' && (
-        <span className="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+        <span className="mt-1 block h-1 w-24 overflow-hidden rounded-full bg-line">
           <span className="block h-full rounded-full bg-accent-500 transition-[width] duration-500" style={{ width: `${Math.max(4, doc.progress * 100)}%` }} />
         </span>
       )}
@@ -116,7 +112,6 @@ function DocRow({
   onSelect: (on: boolean) => void;
   onView: () => void;
 }) {
-  const [menu, setMenu] = useState(false);
   const working = doc.status === 'queued' || doc.status === 'parsing' || doc.status === 'embedding';
   const docCollections = collections.filter((c) => doc.collectionIds.includes(c.id));
   const Icon = doc.sourceType === 'url' ? Globe : doc.sourceType === 'text' ? StickyNote : FileText;
@@ -124,10 +119,16 @@ function DocRow({
   return (
     <tr
       style={{ '--d': `${Math.min(index, 14) * 22}ms` } as CSSProperties}
-      className={cn('anim-rise group border-b border-line transition-colors', selected ? 'bg-accent-50 dark:bg-accent-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/[0.03]')}
+      className={cn('anim-rise group border-b border-line transition-colors', selected ? 'bg-accent-50 dark:bg-accent-950/40' : 'hover:bg-canvas/60')}
     >
       <td className="w-10 py-2.5 pl-4">
-        <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={`Select ${doc.name}`} className="accent-accent-600" />
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelect(e.target.checked)}
+          aria-label={`Select ${doc.name}`}
+          className="accent-accent-600"
+        />
       </td>
       <td className="max-w-0 py-2.5 pr-4">
         <div className="flex items-center gap-2.5">
@@ -148,7 +149,7 @@ function DocRow({
           <StatusCell doc={doc} stale={stale} />
         </div>
       </td>
-      <td className="hidden py-2.5 pr-4 text-xs text-gray-600 lg:table-cell dark:text-gray-300">
+      <td className="hidden py-2.5 pr-4 text-xs text-muted lg:table-cell">
         {docCollections.length ? (
           <span className="flex flex-wrap gap-x-3 gap-y-0.5">
             {docCollections.map((c) => (
@@ -159,7 +160,7 @@ function DocRow({
             ))}
           </span>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-muted">—</span>
         )}
       </td>
       <td className="hidden w-48 py-2.5 pr-4 text-xs sm:table-cell">
@@ -183,14 +184,7 @@ function DocRow({
               <RotateCcw size={13} />
             </IconButton>
           )}
-          {collections.length > 0 && (
-            // Stop the menu's outside-click handler from closing it just before this toggle reopens it.
-            <span onMouseDown={(e) => e.stopPropagation()}>
-              <IconButton title="Collections" onClick={() => setMenu((m) => !m)}>
-                <Layers size={13} />
-              </IconButton>
-            </span>
-          )}
+          {collections.length > 0 && <CollectionMenu doc={doc} collections={collections} />}
           <IconButton
             title="Remove"
             onClick={() => {
@@ -200,7 +194,6 @@ function DocRow({
             <Trash size={13} />
           </IconButton>
         </div>
-        {menu && <CollectionMenu doc={doc} collections={collections} onClose={() => setMenu(false)} />}
       </td>
     </tr>
   );
@@ -284,7 +277,9 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
 
   const submitRename = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const name = String(new FormData(e.currentTarget).get('name') ?? '').trim().slice(0, 200);
+    const name = String(new FormData(e.currentTarget).get('name') ?? '')
+      .trim()
+      .slice(0, 200);
     if (active && name) await db.collections.update(active.id, { name });
     setRenaming(false);
   };
@@ -314,7 +309,11 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
   const addSelectedTo = async (collectionId: string) => {
     const name = collections.find((c) => c.id === collectionId)?.name ?? 'the collection';
     await db.transaction('rw', db.documents, () =>
-      Promise.all(selected.map((d) => (d.collectionIds.includes(collectionId) ? undefined : db.documents.update(d.id, { collectionIds: [...d.collectionIds, collectionId] })))),
+      Promise.all(
+        selected.map((d) =>
+          d.collectionIds.includes(collectionId) ? undefined : db.documents.update(d.id, { collectionIds: [...d.collectionIds, collectionId] }),
+        ),
+      ),
     );
     toast(`Added ${plural(selected.length, 'document')} to ${name}.`, 'success');
   };
@@ -415,21 +414,35 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
                 aria-current={activeId === c.id ? 'true' : undefined}
                 className={cn(
                   'flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors',
-                  activeId === c.id ? 'bg-accent-50 font-medium text-accent-800 dark:bg-accent-950/50 dark:text-accent-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5',
+                  activeId === c.id ? 'bg-accent-50 font-medium text-accent-800 dark:bg-accent-950/50 dark:text-accent-200' : 'text-ink hover:bg-canvas',
                 )}
               >
-                {c.color ? <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.color }} /> : <Layers size={13} className="shrink-0 text-muted" />}
+                {c.color ? (
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.color }} />
+                ) : (
+                  <Layers size={13} className="shrink-0 text-muted" />
+                )}
                 <span className="max-w-[140px] min-w-0 flex-1 truncate">{c.name}</span>
                 <span className="font-mono text-[11px] text-muted tabular-nums">{c.count}</span>
               </button>
             ))}
-            <button onClick={() => setCreating(true)} className="flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] text-muted hover:bg-gray-100 md:hidden dark:hover:bg-white/5">
+            <button
+              onClick={() => setCreating(true)}
+              className="flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] text-muted hover:bg-canvas md:hidden"
+            >
               <Plus size={13} /> New
             </button>
           </div>
           {creating && (
             <form onSubmit={submitCollection} className="flex gap-1.5 px-3 pt-2 max-md:pb-2">
-              <input name="name" autoFocus placeholder="Collection name" aria-label="Collection name" className={cn(inputClass, 'py-1.5 text-xs')} onBlur={(e) => !e.target.value && setCreating(false)} />
+              <input
+                name="name"
+                autoFocus
+                placeholder="Collection name"
+                aria-label="Collection name"
+                className={cn(inputClass, 'py-1.5 text-xs')}
+                onBlur={(e) => !e.target.value && setCreating(false)}
+              />
               <button className={primaryButtonClass}>Add</button>
             </form>
           )}
@@ -492,7 +505,7 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
             ) : (
               <>
                 <label className="relative block w-full max-w-xs">
-                  <Search size={13} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-gray-400" />
+                  <Search size={13} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted" />
                   <input
                     type="search"
                     value={filter}
@@ -586,8 +599,8 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
                 <>
                   <h2 className="font-display text-2xl text-ink">{active ? `Nothing in ${active.name} yet` : 'Start with a document'}</h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted">
-                    Drop files anywhere on this page, or add them here. PDF (scanned ones too), DOCX, HTML, Markdown, text, CSV and JSON are read, split into passages
-                    and indexed, so answers can cite them.
+                    Drop files anywhere on this page, or add them here. PDF (scanned ones too), DOCX, HTML, Markdown, text, CSV and JSON are read, split into
+                    passages and indexed, so answers can cite them.
                   </p>
                   <button className={cn(primaryButtonClass, 'mt-5')} onClick={() => fileRef.current?.click()}>
                     <Upload size={14} /> Add files
@@ -603,46 +616,46 @@ export function KnowledgePage({ onViewDocument }: { onViewDocument: (doc: KbDocu
               )}
             </div>
           ) : (
-            <div className="m-4 overflow-hidden rounded-2xl border border-line bg-surface">
-            <table className="w-full table-fixed border-collapse text-left">
-              <thead>
-                <tr className="border-b border-line font-mono text-[10px] tracking-wider text-muted uppercase">
-                  <th scope="col" className="w-10 py-2 pl-4">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={(e) => setPicked(e.target.checked ? new Set(visible.map((d) => d.id)) : new Set())}
-                      aria-label="Select all documents shown"
-                      className="accent-accent-600"
+            <div className="m-4 rounded-2xl border border-line bg-surface">
+              <table className="w-full table-fixed border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-line font-mono text-[10px] tracking-wider text-muted uppercase">
+                    <th scope="col" className="w-10 py-2 pl-4">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={(e) => setPicked(e.target.checked ? new Set(visible.map((d) => d.id)) : new Set())}
+                        aria-label="Select all documents shown"
+                        className="accent-accent-600"
+                      />
+                    </th>
+                    <SortHeader label="Name" k="name" sort={sort} onSort={onSort} />
+                    <th scope="col" className="hidden py-2 pr-4 font-normal lg:table-cell">
+                      Collections
+                    </th>
+                    <SortHeader label="Status" k="status" sort={sort} onSort={onSort} className="hidden w-48 sm:table-cell" />
+                    <SortHeader label="Size" k="size" sort={sort} onSort={onSort} className="hidden w-32 text-right md:table-cell" />
+                    <SortHeader label="Added" k="added" sort={sort} onSort={onSort} className="hidden w-28 md:table-cell" />
+                    <th scope="col" className="w-24 py-2 pr-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((doc, i) => (
+                    <DocRow
+                      key={doc.id}
+                      doc={doc}
+                      index={i}
+                      stale={isStale(doc)}
+                      selected={picked.has(doc.id)}
+                      collections={collections}
+                      onSelect={(on) => pick(doc.id, on)}
+                      onView={() => onViewDocument(doc)}
                     />
-                  </th>
-                  <SortHeader label="Name" k="name" sort={sort} onSort={onSort} />
-                  <th scope="col" className="hidden py-2 pr-4 font-normal lg:table-cell">
-                    Collections
-                  </th>
-                  <SortHeader label="Status" k="status" sort={sort} onSort={onSort} className="hidden w-48 sm:table-cell" />
-                  <SortHeader label="Size" k="size" sort={sort} onSort={onSort} className="hidden w-32 text-right md:table-cell" />
-                  <SortHeader label="Added" k="added" sort={sort} onSort={onSort} className="hidden w-28 md:table-cell" />
-                  <th scope="col" className="w-24 py-2 pr-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((doc, i) => (
-                  <DocRow
-                    key={doc.id}
-                    doc={doc}
-                    index={i}
-                    stale={isStale(doc)}
-                    selected={picked.has(doc.id)}
-                    collections={collections}
-                    onSelect={(on) => pick(doc.id, on)}
-                    onView={() => onViewDocument(doc)}
-                  />
-                ))}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

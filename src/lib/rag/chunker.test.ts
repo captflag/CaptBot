@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chunkText, findSections, pageAt } from './chunker';
 
-const para = (n: number, word = 'alpha') =>
-  Array.from({ length: n }, (_, i) => `The ${word} sentence number ${i} carries a few words.`).join(' ');
+const para = (n: number, word = 'alpha') => Array.from({ length: n }, (_, i) => `The ${word} sentence number ${i} carries a few words.`).join(' ');
 
 describe('chunkText', () => {
   const doc = `# Title\n\nIntro paragraph.\n\n## Part A\n\n${para(40)}\n\n## Part B\n\n${para(30, 'beta')}`;

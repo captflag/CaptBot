@@ -40,7 +40,9 @@ The user's message includes excerpts retrieved from their documents inside <sour
   }
 
   if (o.webSearch) {
-    parts.push(`# Web search\nYou can use Google Search for current or external information. Web sources are attached to your reply automatically, so don't write out URLs you haven't seen.`);
+    parts.push(
+      `# Web search\nYou can use Google Search for current or external information. Web sources are attached to your reply automatically, so don't write out URLs you haven't seen.`,
+    );
   }
 
   if (o.connectors?.length) {

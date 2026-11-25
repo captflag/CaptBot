@@ -76,6 +76,8 @@ export interface Thread {
   collectionIds: string[];
   createdAt: number;
   updatedAt: number;
+  /** Kept above the other chats in the list. */
+  starred?: boolean;
 }
 
 export interface SourceRef {

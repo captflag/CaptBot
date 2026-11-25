@@ -86,7 +86,11 @@ async function condenseQuery(ctx: Context): Promise<string> {
     effort: 'low',
     signal: input.signal,
   });
-  const query = out.trim().split('\n')[0].replace(/^["'`]+|["'`]+$/g, '').trim();
+  const query = out
+    .trim()
+    .split('\n')[0]
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .trim();
   return query.length >= 2 && query.length <= 500 ? query : input.question;
 }
 
@@ -171,7 +175,10 @@ async function* asCompleted<T>(promises: Promise<T>[]): AsyncGenerator<Settled<T
 function parseQueries(raw: string, max: number): string[] {
   const parsed = parseJsonLoose<{ queries?: unknown }>(raw);
   if (!Array.isArray(parsed?.queries)) return [];
-  return parsed.queries.filter((q): q is string => typeof q === 'string' && q.trim().length > 0).map((q) => q.trim()).slice(0, max);
+  return parsed.queries
+    .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
+    .map((q) => q.trim())
+    .slice(0, max);
 }
 
 /**
@@ -319,15 +326,15 @@ function allowAlways(connectorId: string, tool: string) {
  * Runs one tool call the model asked for, asking the user first unless that tool is always allowed.
  * Every outcome, refusals and failures included, goes back to the model as a result.
  */
-async function* runCall(
-  call: ToolCall,
-  toolbox: Toolbox,
-  runs: ToolRun[],
-  input: AnswerInput,
-  overLimit: boolean,
-): AsyncGenerator<AnswerEvent, ToolResult> {
+async function* runCall(call: ToolCall, toolbox: Toolbox, runs: ToolRun[], input: AnswerInput, overLimit: boolean): AsyncGenerator<AnswerEvent, ToolResult> {
   const route = toolbox.route.get(call.name);
-  const run: ToolRun = { id: uid(), connector: route?.connector.name ?? 'Unknown', tool: route?.tool ?? call.name, args: short(JSON.stringify(call.args)), status: 'running' };
+  const run: ToolRun = {
+    id: uid(),
+    connector: route?.connector.name ?? 'Unknown',
+    tool: route?.tool ?? call.name,
+    args: short(JSON.stringify(call.args)),
+    status: 'running',
+  };
   runs.push(run);
   const event = (): AnswerEvent => ({ type: 'tools', runs: runs.map((r) => ({ ...r })) });
   const result = (output: string, isError = false): ToolResult => ({ id: call.id, name: call.name, output, isError });
@@ -348,7 +355,9 @@ async function* runCall(
   }
 
   // Read the latest settings: "Always allow" pressed earlier in this answer counts already.
-  const allowed = getSettings().connectors.find((c) => c.id === route.connector.id)?.alwaysAllow.includes(route.tool);
+  const allowed = getSettings()
+    .connectors.find((c) => c.id === route.connector.id)
+    ?.alwaysAllow.includes(route.tool);
   if (!allowed) {
     run.status = 'approval';
     yield event();
@@ -430,10 +439,7 @@ export async function* answer(input: AnswerInput): AsyncGenerator<AnswerEvent> {
     pinned: input.history.filter((m) => m.pinned).map((m) => `${m.role === 'user' ? 'User' : 'CaptBot'}: ${stripCitations(m.content).slice(0, 2000)}`),
     connectors: tools ? [...new Set([...toolbox!.route.values()].map((r) => r.connector.name))] : [],
   });
-  const messages: ChatTurn[] = [
-    ...historyTurns(input.history),
-    { role: 'user', content: userTurn(input.question, sources, extra), images: input.images },
-  ];
+  const messages: ChatTurn[] = [...historyTurns(input.history), { role: 'user', content: userTurn(input.question, sources, extra), images: input.images }];
 
   const writing = research ? steps.start('Writing the report') : null;
   if (writing) yield steps.event();

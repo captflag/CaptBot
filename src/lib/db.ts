@@ -1,14 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
-import type {
-  ChatMessage,
-  Chunk,
-  ChunkVector,
-  Collection,
-  DocText,
-  KbDocument,
-  SavedPrompt,
-  Thread,
-} from './types';
+import type { ChatMessage, Chunk, ChunkVector, Collection, DocText, KbDocument, SavedPrompt, Thread } from './types';
 import { syncMiddleware } from './sync/track';
 
 export class CaptBotDB extends Dexie {
@@ -92,16 +83,11 @@ export async function deleteThread(id: string) {
 }
 
 export async function threadMessages(threadId: string): Promise<ChatMessage[]> {
-  return db.messages
-    .where('[threadId+createdAt]')
-    .between([threadId, Dexie.minKey], [threadId, Dexie.maxKey])
-    .toArray();
+  return db.messages.where('[threadId+createdAt]').between([threadId, Dexie.minKey], [threadId, Dexie.maxKey]).toArray();
 }
 
 /** IDs of ready documents inside the given collections (all collections when empty). */
 export async function scopedReadyDocIds(collectionIds: string[]): Promise<Set<string>> {
-  const docs = collectionIds.length
-    ? await db.documents.where('collectionIds').anyOf(collectionIds).toArray()
-    : await db.documents.toArray();
+  const docs = collectionIds.length ? await db.documents.where('collectionIds').anyOf(collectionIds).toArray() : await db.documents.toArray();
   return new Set(docs.filter((d) => d.status === 'ready').map((d) => d.id));
 }

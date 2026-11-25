@@ -56,10 +56,7 @@ export class GeminiChat implements ChatProvider {
       thinkingConfig: thinkingFor(req.model, req.effort),
     };
 
-    const stream = await withRetry(
-      () => this.ai.models.generateContentStream({ model: req.model, contents, config }),
-      req.signal,
-    );
+    const stream = await withRetry(() => this.ai.models.generateContentStream({ model: req.model, contents, config }), req.signal);
     const toolCalls: ToolCall[] = [];
     for await (const chunk of stream) {
       const candidate = chunk.candidates?.[0];

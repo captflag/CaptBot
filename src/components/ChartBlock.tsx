@@ -9,8 +9,8 @@ export default function ChartBlock({ data }: { data: Record<string, unknown>[] }
   const x = keys.find((k) => typeof data[0][k] !== 'number') ?? keys[0];
   const series = keys.filter((k) => k !== x && typeof data[0][k] === 'number').slice(0, 3);
   return (
-    <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-surface">
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="mt-4 rounded-xl border border-line bg-surface p-4 dark:bg-surface">
+      <div className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wider text-muted uppercase">
         <ChartColumn size={14} className="text-accent-500" /> Chart from answer data
       </div>
       <div className="h-64 w-full">

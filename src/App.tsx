@@ -1,20 +1,35 @@
-import { useCallback, useEffect, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ChatList } from './components/ChatList';
 import { ChatView } from './components/ChatView';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { KnowledgePage } from './components/KnowledgePage';
 import { NavRail, type View } from './components/NavRail';
-import { QuickFind } from './components/QuickFind';
-import { SettingsDialog } from './components/SettingsDialog';
-import { ShortcutsSheet } from './components/ShortcutsSheet';
 import { SourceViewer, type ViewerItem } from './components/SourceViewer';
 import { Toaster } from './components/Toaster';
 import { profileKey } from './lib/auth/profile';
 import { db } from './lib/db';
 import { recoverInterrupted } from './lib/rag/ingest';
-import { useSettings } from './lib/settings';
+import { fontStack, useSettings } from './lib/settings';
+import { adoptLegacyStars } from './lib/stars';
 import type { KbDocument } from './lib/types';
 import { cn, isNarrow } from './lib/utils';
+
+// Screens you open rather than land on load as their own chunks, so the first paint has less to parse.
+const loadKnowledge = () => import('./components/KnowledgePage');
+const loadSettings = () => import('./components/SettingsDialog');
+const loadQuickFind = () => import('./components/QuickFind');
+const loadShortcuts = () => import('./components/ShortcutsSheet');
+const KnowledgePage = lazy(() => loadKnowledge().then((m) => ({ default: m.KnowledgePage })));
+const SettingsDialog = lazy(() => loadSettings().then((m) => ({ default: m.SettingsDialog })));
+const QuickFind = lazy(() => loadQuickFind().then((m) => ({ default: m.QuickFind })));
+const ShortcutsSheet = lazy(() => loadShortcuts().then((m) => ({ default: m.ShortcutsSheet })));
+
+/** Fetches those chunks once the app is idle, so opening any of them still feels instant. */
+function preloadScreens() {
+  const all = () => [loadKnowledge, loadSettings, loadQuickFind, loadShortcuts].forEach((load) => void load().catch(() => undefined));
+  if ('requestIdleCallback' in window) window.requestIdleCallback(all, { timeout: 4000 });
+  else setTimeout(all, 2000);
+}
 
 const ACTIVE_THREAD_KEY = 'captbot_active_thread';
 
@@ -38,6 +53,8 @@ export default function App() {
   const [pendingScope, setPendingScope] = useState<string[]>([]);
   const [listOpen, setListOpen] = useState(() => !isNarrow());
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Settings stays mounted after its first use, so it reopens on the tab you left it on.
+  const [settingsUsed, setSettingsUsed] = useState(false);
   const [viewer, setViewer] = useState<{ items: ViewerItem[]; index: number } | null>(null);
   const [seed, setSeed] = useState<{ text: string; nonce: number } | null>(null);
   const [finding, setFinding] = useState(false);
@@ -49,7 +66,7 @@ export default function App() {
   }, [settings.theme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--app-font', `'${settings.font}'`);
+    document.documentElement.style.setProperty('--app-font', fontStack(settings.font));
   }, [settings.font]);
 
   useEffect(() => {
@@ -66,6 +83,13 @@ export default function App() {
     const remembered = readActiveThread();
     if (remembered) void db.threads.get(remembered).then((t) => !t && setThreadId(null));
     void recoverInterrupted();
+    void adoptLegacyStars();
+    preloadScreens();
+  }, []);
+
+  const openSettings = useCallback(() => {
+    setSettingsUsed(true);
+    setSettingsOpen(true);
   }, []);
 
   useEffect(() => {
@@ -113,7 +137,7 @@ export default function App() {
   return (
     <div className="h-full bg-backdrop md:p-3">
       <div className="flex h-full flex-col-reverse overflow-hidden bg-surface text-ink md:flex-row md:rounded-[22px] md:border md:border-line md:shadow-[0_30px_80px_-30px_rgb(0_0_0/0.45)]">
-        <NavRail view={view} onView={go} onOpenSettings={() => setSettingsOpen(true)} busy={chatBusy} />
+        <NavRail view={view} onView={go} onOpenSettings={openSettings} busy={chatBusy} />
 
         {/* Panes that slide over the chat on narrow screens are placed against this box. */}
         <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
@@ -151,7 +175,7 @@ export default function App() {
                   listOpen={listOpen}
                   onToggleList={() => setListOpen((o) => !o)}
                   onNewChat={newChat}
-                  onOpenSettings={() => setSettingsOpen(true)}
+                  onOpenSettings={openSettings}
                   onOpenKnowledge={() => go('knowledge')}
                   onOpenSources={openSources}
                   onOpenSearch={() => setFinding(true)}
@@ -162,7 +186,15 @@ export default function App() {
             </div>
             {view === 'knowledge' && (
               <ErrorBoundary label="The knowledge page">
-                <KnowledgePage onViewDocument={viewDocument} />
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center gap-2 text-sm text-muted">
+                      <LoaderCircle size={16} className="animate-spin" /> Opening Knowledge…
+                    </div>
+                  }
+                >
+                  <KnowledgePage onViewDocument={viewDocument} />
+                </Suspense>
               </ErrorBoundary>
             )}
           </main>
@@ -179,26 +211,36 @@ export default function App() {
       </div>
 
       {finding && (
-        <QuickFind
-          onClose={() => setFinding(false)}
-          onSelectThread={(id) => {
-            setThreadId(id);
-            go('chat');
-            closeListIfNarrow();
-          }}
-          onViewDocument={viewDocument}
-          onUsePrompt={(text) => {
-            setSeed({ text, nonce: Date.now() });
-            go('chat');
-          }}
-          onNewChat={newChat}
-          onOpenKnowledge={() => go('knowledge')}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onShowShortcuts={() => setShortcuts(true)}
-        />
+        <Suspense fallback={null}>
+          <QuickFind
+            onClose={() => setFinding(false)}
+            onSelectThread={(id) => {
+              setThreadId(id);
+              go('chat');
+              closeListIfNarrow();
+            }}
+            onViewDocument={viewDocument}
+            onUsePrompt={(text) => {
+              setSeed({ text, nonce: Date.now() });
+              go('chat');
+            }}
+            onNewChat={newChat}
+            onOpenKnowledge={() => go('knowledge')}
+            onOpenSettings={openSettings}
+            onShowShortcuts={() => setShortcuts(true)}
+          />
+        </Suspense>
       )}
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <ShortcutsSheet open={shortcuts} onClose={() => setShortcuts(false)} />
+      {settingsUsed && (
+        <Suspense fallback={null}>
+          <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
+      {shortcuts && (
+        <Suspense fallback={null}>
+          <ShortcutsSheet open onClose={() => setShortcuts(false)} />
+        </Suspense>
+      )}
       <Toaster />
     </div>
   );

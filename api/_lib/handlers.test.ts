@@ -114,7 +114,12 @@ describe('POST /api/embed', () => {
   it('returns one vector per text', async () => {
     const res = await createEmbedHandler(deps())(embedRequest({ model: 'gemini-embedding-2', dimensions: 768, texts: ['a', 'b'] }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ vectors: [[0.1, 0.2], [0.1, 0.2]] });
+    expect(await res.json()).toEqual({
+      vectors: [
+        [0.1, 0.2],
+        [0.1, 0.2],
+      ],
+    });
   });
 
   it('rejects oversized batches', async () => {

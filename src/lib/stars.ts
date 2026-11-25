@@ -1,45 +1,35 @@
-import { useSyncExternalStore } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { profileKey } from './auth/profile';
+import { db } from './db';
 
-// ponytail: stars live in this browser only, like settings. To sync them across devices,
-// add a `starred` column to the threads table and carry it through the sync rows.
-const KEY = 'captbot_starred';
-const listeners = new Set<() => void>();
-/** Cached per profile, so the set keeps its identity between reads (useSyncExternalStore needs that). */
-let cached: { key: string; ids: Set<string> } | null = null;
-
-function read(): Set<string> {
-  const key = profileKey(KEY);
-  if (cached?.key !== key) {
-    let ids: Set<string>;
-    try {
-      ids = new Set(JSON.parse(localStorage.getItem(key) ?? '[]') as string[]);
-    } catch {
-      ids = new Set();
-    }
-    cached = { key, ids };
-  }
-  return cached.ids;
+/** Stars a chat, or takes its star away. Stored on the chat itself, so it syncs with the account. */
+export async function toggleStar(id: string) {
+  const thread = await db.threads.get(id);
+  if (thread) await db.threads.update(id, { starred: !thread.starred });
 }
 
-/** Stars a chat, or takes its star away. */
-export function toggleStar(id: string) {
-  const next = new Set(read());
-  if (!next.delete(id)) next.add(id);
-  const key = profileKey(KEY);
-  cached = { key, ids: next };
+const EMPTY = new Set<string>();
+
+/** The ids of starred chats. */
+export const useStarred = (): Set<string> => useLiveQuery(async () => new Set(await db.threads.filter((t) => Boolean(t.starred)).primaryKeys()), [], EMPTY);
+
+/** Stars used to live in localStorage; moves any left there onto their chats, once. */
+export async function adoptLegacyStars() {
+  const key = profileKey('captbot_starred');
+  let ids: string[];
   try {
-    localStorage.setItem(key, JSON.stringify([...next]));
+    ids = JSON.parse(localStorage.getItem(key) ?? '[]') as string[];
   } catch {
-    // Storage blocked: the star lasts until the page is reloaded.
+    return;
   }
-  listeners.forEach((l) => l());
+  if (!ids.length) return;
+  // Chats not on this device yet (still to be pulled from the account) keep their entry for next time.
+  const left: string[] = [];
+  for (const id of ids) if (!(await db.threads.update(id, { starred: true }))) left.push(id);
+  try {
+    if (left.length) localStorage.setItem(key, JSON.stringify(left));
+    else localStorage.removeItem(key);
+  } catch {
+    // Storage blocked: the move runs again next time, which is harmless.
+  }
 }
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-/** The ids of starred chats; re-renders whenever a star changes anywhere in the app. */
-export const useStarred = () => useSyncExternalStore(subscribe, read);

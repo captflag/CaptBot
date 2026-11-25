@@ -25,7 +25,11 @@ async function collect(gen: AsyncIterable<{ text?: string }>) {
 describe('ServerChat', () => {
   it('streams deltas and sends the session token, mapping utility calls to the fast tier', async () => {
     const fetchMock = vi.fn(async () =>
-      sse(['data: {"text":"Hel"}\n\n', 'data: {"text":"lo"}\n\nevent: done\ndata: {}\n\n'], { 'x-ratelimit-limit': '100', 'x-ratelimit-remaining': '99', 'x-ratelimit-reset': '1' }),
+      sse(['data: {"text":"Hel"}\n\n', 'data: {"text":"lo"}\n\nevent: done\ndata: {}\n\n'], {
+        'x-ratelimit-limit': '100',
+        'x-ratelimit-remaining': '99',
+        'x-ratelimit-reset': '1',
+      }),
     );
     vi.stubGlobal('fetch', fetchMock);
     const chat = new ServerChat(async () => 'tok');
@@ -38,8 +42,12 @@ describe('ServerChat', () => {
   });
 
   it('turns a 429 into a non-retryable limit error that points to Settings', async () => {
-    vi.stubGlobal('fetch', async () =>
-      new Response(JSON.stringify({ error: 'rate_limited', scope: 'chat', window: 'day', limit: 100, remaining: 0, reset: Date.now() + 3_600_000 }), { status: 429 }),
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        new Response(JSON.stringify({ error: 'rate_limited', scope: 'chat', window: 'day', limit: 100, remaining: 0, reset: Date.now() + 3_600_000 }), {
+          status: 429,
+        }),
     );
     const chat = new ServerChat(async () => 'tok');
     const err = await collect(chat.stream({ model: 'm', messages: [{ role: 'user', content: 'hi' }] })).catch((e) => e);

@@ -84,7 +84,7 @@ export default defineConfig({
     exclude: ['@huggingface/transformers'],
     // Pre-bundle these up front, in the same pass as React. Lazily imported deps would otherwise
     // reload the page (interrupting indexing) the first time they load, and a dep discovered
-    // mid-session (seen with @gsap/react) can get its own inlined copy of React -> "Invalid hook call".
+    // mid-session (seen with a React hooks package) can get its own inlined copy of React -> "Invalid hook call".
     include: [
       'pdfjs-dist',
       'mammoth',
@@ -93,8 +93,6 @@ export default defineConfig({
       'recharts',
       '@google/genai',
       '@anthropic-ai/sdk',
-      'gsap',
-      '@gsap/react',
       '@modelcontextprotocol/sdk/client/index.js',
       '@modelcontextprotocol/sdk/client/sse.js',
       '@modelcontextprotocol/sdk/client/streamableHttp.js',
@@ -102,7 +100,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.ts', 'api/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'api/**/*.test.ts'],
     setupFiles: ['src/test/setup.ts'],
   },
 });

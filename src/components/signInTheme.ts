@@ -42,8 +42,8 @@ export function signInAppearance(dark: boolean): Appearance {
       colorBorder: border,
       colorRing: accent,
       borderRadius: '0.625rem',
-      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-      fontFamilyButtons: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
+      fontFamilyButtons: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
     },
     elements: {
       rootBox: { width: '100%' },

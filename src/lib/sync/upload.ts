@@ -25,7 +25,7 @@ export function codePoints(text: string): number {
 /** Splits text into upload parts, never between the two halves of a surrogate pair. */
 export function textParts(text: string, size = TEXT_PART): string[] {
   const parts: string[] = [];
-  for (let from = 0; from < text.length; ) {
+  for (let from = 0; from < text.length;) {
     let to = Math.min(text.length, from + size);
     const last = text.charCodeAt(to - 1);
     if (to < text.length && last >= 0xd800 && last <= 0xdbff) to--;

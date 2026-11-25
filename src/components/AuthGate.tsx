@@ -74,11 +74,7 @@ function SessionGate({ children }: { children: ReactNode }) {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      afterSignOutUrl="/"
-      appearance={{ variables: { colorPrimary: '#7c3aed' } }}
-    >
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/" appearance={{ variables: { colorPrimary: '#7c3aed' } }}>
       <SessionGate>{children}</SessionGate>
     </ClerkProvider>
   );

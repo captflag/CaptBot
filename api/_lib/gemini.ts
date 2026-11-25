@@ -17,7 +17,10 @@ export function readGeminiConfig(env: Record<string, string | undefined>): Gemin
     apiKey,
     mainModel: env.FREE_CHAT_MODEL?.trim() || 'gemini-3.8-flash',
     fastModel: env.FREE_FAST_MODEL?.trim() || 'gemini-3.5-flash-lite',
-    embedModels: (env.FREE_EMBED_MODELS ?? 'gemini-embedding-2,gemini-embedding-001').split(',').map((s) => s.trim()).filter(Boolean),
+    embedModels: (env.FREE_EMBED_MODELS ?? 'gemini-embedding-2,gemini-embedding-001')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
   };
 }
 

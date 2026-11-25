@@ -95,6 +95,12 @@ function systemTheme(): 'light' | 'dark' {
   }
 }
 
+/** The reading faces on offer. "System" is the device's own interface font, so nothing is downloaded. */
+export const FONTS = ['Plus Jakarta Sans', 'Geist', 'System'];
+
+/** The CSS font-family value for a face from FONTS. */
+export const fontStack = (font: string) => (font === 'System' ? 'system-ui' : `'${font}'`);
+
 export function defaultSettings(): Settings {
   return {
     displayName: '',
@@ -120,8 +126,8 @@ function load(): Settings {
       ...base,
       ...saved,
       theme: base.theme,
-      // Inter was the old default face and is no longer offered; anyone still on it moves to the new default.
-      font: !saved.font || saved.font === 'Inter' ? base.font : saved.font,
+      // A face that is no longer offered (Inter, Martian Grotesk, Redaction) falls back to the default.
+      font: saved.font && FONTS.includes(saved.font) ? saved.font : base.font,
       chat: { ...base.chat, ...saved.chat },
       embeddings: { ...base.embeddings, ...saved.embeddings },
       retrieval: { ...base.retrieval, ...saved.retrieval },

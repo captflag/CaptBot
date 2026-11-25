@@ -11,8 +11,15 @@ import type { KbDocument } from '../types';
 describe('reciprocalRankFusion', () => {
   it('rewards items ranked well in several lists', () => {
     const fused = reciprocalRankFusion([
-      [{ id: 'a', score: 9 }, { id: 'b', score: 5 }, { id: 'c', score: 1 }],
-      [{ id: 'b', score: 0.9 }, { id: 'c', score: 0.8 }],
+      [
+        { id: 'a', score: 9 },
+        { id: 'b', score: 5 },
+        { id: 'c', score: 1 },
+      ],
+      [
+        { id: 'b', score: 0.9 },
+        { id: 'c', score: 0.8 },
+      ],
     ]);
     expect(fused.map((f) => f.id)).toEqual(['b', 'c', 'a']);
   });
@@ -99,9 +106,7 @@ describe('citations', () => {
   });
 
   it('linkifies markers into cite anchors', () => {
-    expect(linkifyCitations('Fact [1][2]. Other [1, 3].', 3)).toBe(
-      'Fact [1](#cite-1)[2](#cite-2). Other [1](#cite-1)[3](#cite-3).',
-    );
+    expect(linkifyCitations('Fact [1][2]. Other [1, 3].', 3)).toBe('Fact [1](#cite-1)[2](#cite-2). Other [1](#cite-1)[3](#cite-3).');
   });
 
   it('strips markers for conversation history', () => {

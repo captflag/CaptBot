@@ -44,7 +44,7 @@
   --raised: #ffffff;
   --line: #e1e5ea;
   --ink: #1c2128;
-  --muted: #6b7380;
+  --muted: #5f6773;
   --mark: #ffeea0;
 }
 .dark {
@@ -54,7 +54,7 @@
   --raised: #2f343d;
   --line: #333842;
   --ink: #e9ebee;
-  --muted: #8b93a0;
+  --muted: #9aa2ae;
   --mark: rgb(47 201 140 / 0.3);
 }
 @theme inline {
@@ -232,6 +232,29 @@ mark.source-highlight {
     animation: logo-blink 1s steps(1) infinite;
   }
 
+  /* The answer loader: three green bars rising in turn, beside a status line with a light passing over it. */
+  .loader-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 14px;
+  }
+  .loader-bars span {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-accent-500);
+    transform-origin: bottom;
+    animation: loader-bar 900ms ease-in-out calc(var(--i) * 140ms) infinite;
+  }
+  .loader-text {
+    color: transparent;
+    background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%, var(--muted) 100%) 0 0 / 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: loader-shimmer 2s linear infinite;
+  }
+
   /* Things you can open lift a little under the pointer. */
   .lift {
     transition:
@@ -296,6 +319,23 @@ mark.source-highlight {
       stroke-dashoffset: 0;
     }
   }
+  @keyframes loader-bar {
+    0%,
+    100% {
+      transform: scaleY(0.35);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes loader-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
   @keyframes mark-spin {
     to {
       transform: rotate(360deg);
@@ -330,6 +370,7 @@ mark.source-highlight {
   .mark-inner,
   .mark-dot,
   .logo-word i,
+  .loader-bars span,
   .answer-streaming > *,
   .answer-streaming > *:last-child::after,
   mark.source-highlight {
@@ -337,5 +378,11 @@ mark.source-highlight {
   }
   .lift:not(:disabled):hover {
     transform: none;
+  }
+  /* Without the moving light, the status line is plain secondary text. */
+  .loader-text {
+    animation: none;
+    color: var(--muted);
+    background: none;
   }
 }

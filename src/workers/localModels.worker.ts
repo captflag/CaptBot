@@ -7,9 +7,7 @@ import { AutoModelForSequenceClassification, AutoTokenizer, env, pipeline } from
 
 env.allowLocalModels = false;
 
-type Request =
-  | { id: number; type: 'embed'; model: string; texts: string[] }
-  | { id: number; type: 'rerank'; model: string; query: string; passages: string[] };
+type Request = { id: number; type: 'embed'; model: string; texts: string[] } | { id: number; type: 'rerank'; model: string; query: string; passages: string[] };
 
 // transformers.js pipeline/model types are very wide; keep the surface we use explicit.
 type Extractor = (texts: string[], opts: { pooling: 'cls' | 'mean'; normalize: boolean }) => Promise<{ tolist(): number[][] }>;

@@ -76,14 +76,17 @@ export const localCandidates: CandidateSource = {
 async function hydrate(ranked: Ranked[]): Promise<Retrieved[]> {
   const chunks = await db.chunks.bulkGet(ranked.map((r) => r.id));
   const found = chunks.filter((c): c is Chunk => Boolean(c));
-  const docs = new Map(
-    (await db.documents.bulkGet([...new Set(found.map((c) => c.docId))])).flatMap((d) => (d ? [[d.id, d] as const] : [])),
-  );
+  const docs = new Map((await db.documents.bulkGet([...new Set(found.map((c) => c.docId))])).flatMap((d) => (d ? [[d.id, d] as const] : [])));
   // The chunks either side of each hit, so the excerpt can be widened within the context budget.
   const around = found.length
     ? await db.chunks
         .where('[docId+ordinal]')
-        .anyOf(found.flatMap((c) => [[c.docId, c.ordinal - 1], [c.docId, c.ordinal + 1]]))
+        .anyOf(
+          found.flatMap((c) => [
+            [c.docId, c.ordinal - 1],
+            [c.docId, c.ordinal + 1],
+          ]),
+        )
         .toArray()
     : [];
   const at = new Map(around.map((c) => [`${c.docId}:${c.ordinal}`, c]));
@@ -93,9 +96,7 @@ async function hydrate(ranked: Ranked[]): Promise<Retrieved[]> {
     const chunk = chunks[i];
     const doc = chunk && docs.get(chunk.docId);
     if (!chunk || !doc) return;
-    const neighbors = [at.get(`${chunk.docId}:${chunk.ordinal - 1}`), at.get(`${chunk.docId}:${chunk.ordinal + 1}`)].filter(
-      (c): c is Chunk => Boolean(c),
-    );
+    const neighbors = [at.get(`${chunk.docId}:${chunk.ordinal - 1}`), at.get(`${chunk.docId}:${chunk.ordinal + 1}`)].filter((c): c is Chunk => Boolean(c));
     out.push({ chunk, doc, score: r.score, neighbors });
   });
   return out;

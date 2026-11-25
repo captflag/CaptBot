@@ -11,9 +11,7 @@ export interface LocalModelStatus {
 }
 
 type WorkerMessage =
-  | { type: 'progress'; model: string; progress: number }
-  | { type: 'ready'; model: string }
-  | { type: 'result'; id: number; result?: unknown; error?: string };
+  { type: 'progress'; model: string; progress: number } | { type: 'ready'; model: string } | { type: 'result'; id: number; result?: unknown; error?: string };
 
 class LocalModels {
   private worker: Worker | null = null;
@@ -61,7 +59,10 @@ class LocalModels {
     this.listeners.forEach((l) => l());
   }
 
-  private call<T>(payload: { type: 'embed'; model: string; texts: string[] } | { type: 'rerank'; model: string; query: string; passages: string[] }, signal?: AbortSignal): Promise<T> {
+  private call<T>(
+    payload: { type: 'embed'; model: string; texts: string[] } | { type: 'rerank'; model: string; query: string; passages: string[] },
+    signal?: AbortSignal,
+  ): Promise<T> {
     const id = ++this.seq;
     return new Promise<T>((resolve, reject) => {
       if (signal?.aborted) return reject(new DOMException('Aborted', 'AbortError'));

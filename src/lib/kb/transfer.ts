@@ -62,10 +62,14 @@ function base64ToF32(b64: string): Float32Array {
 
 export async function buildPack(opts: PackOptions = {}): Promise<KnowledgePack> {
   const scope = opts.collectionIds?.length ? new Set(opts.collectionIds) : null;
-  const collections = scope
-    ? (await db.collections.bulkGet([...scope])).filter((c): c is Collection => Boolean(c))
-    : await db.collections.toArray();
-  let documents = scope ? await db.documents.where('collectionIds').anyOf([...scope]).distinct().toArray() : await db.documents.toArray();
+  const collections = scope ? (await db.collections.bulkGet([...scope])).filter((c): c is Collection => Boolean(c)) : await db.collections.toArray();
+  let documents = scope
+    ? await db.documents
+        .where('collectionIds')
+        .anyOf([...scope])
+        .distinct()
+        .toArray()
+    : await db.documents.toArray();
   if (scope) documents = documents.map((d) => ({ ...d, collectionIds: d.collectionIds.filter((c) => scope.has(c)) }));
 
   const docIds = documents.map((d) => d.id);
@@ -132,9 +136,7 @@ export async function encodePack(pack: KnowledgePack): Promise<ArrayBuffer> {
 export async function decodePack(buffer: ArrayBuffer): Promise<KnowledgePack> {
   const bytes = new Uint8Array(buffer);
   const gzipped = bytes[0] === 0x1f && bytes[1] === 0x8b;
-  const text = gzipped
-    ? await new Response(streamOf(bytes).pipeThrough(new DecompressionStream('gzip'))).text()
-    : new TextDecoder().decode(bytes);
+  const text = gzipped ? await new Response(streamOf(bytes).pipeThrough(new DecompressionStream('gzip'))).text() : new TextDecoder().decode(bytes);
   let pack: KnowledgePack;
   try {
     pack = JSON.parse(text);
@@ -152,9 +154,7 @@ export async function decodePack(buffer: ArrayBuffer): Promise<KnowledgePack> {
  */
 async function applyPackToAccount(pack: KnowledgePack): Promise<ImportSummary> {
   const serverKey = getStorageMode().embeddingKey;
-  const local = new Map(
-    (await db.documents.bulkGet(pack.documents.map((d) => d.id))).flatMap((d) => (d ? [[d.id, d] as const] : [])),
-  );
+  const local = new Map((await db.documents.bulkGet(pack.documents.map((d) => d.id))).flatMap((d) => (d ? [[d.id, d] as const] : [])));
   const withText = new Set(pack.texts.map((t) => t.docId));
   const incoming = pack.documents.filter((d) => {
     const mine = local.get(d.id);
@@ -190,9 +190,7 @@ export async function applyPack(pack: KnowledgePack): Promise<ImportSummary> {
   const vectorKeys = new Map<string, string>();
   for (const v of pack.vectors) vectorKeys.set(v.docId, v.embeddingKey);
 
-  const local = new Map(
-    (await db.documents.bulkGet(pack.documents.map((d) => d.id))).flatMap((d) => (d ? [[d.id, d] as const] : [])),
-  );
+  const local = new Map((await db.documents.bulkGet(pack.documents.map((d) => d.id))).flatMap((d) => (d ? [[d.id, d] as const] : [])));
   const documents: KbDocument[] = pack.documents.map((d) => {
     const mine = local.get(d.id);
     const unfinished = d.status !== 'ready' && d.status !== 'error';
@@ -208,22 +206,16 @@ export async function applyPack(pack: KnowledgePack): Promise<ImportSummary> {
     };
   });
 
-  await db.transaction(
-    'rw',
-    [db.collections, db.documents, db.docTexts, db.chunks, db.vectors, db.threads, db.messages, db.prompts],
-    async () => {
-      await db.collections.bulkPut(pack.collections);
-      await db.documents.bulkPut(documents);
-      await db.docTexts.bulkPut(pack.texts);
-      await db.chunks.bulkPut(pack.chunks);
-      await db.vectors.bulkPut(
-        pack.vectors.map((v) => ({ chunkId: v.chunkId, docId: v.docId, embeddingKey: v.embeddingKey, vector: base64ToF32(v.vector) })),
-      );
-      await db.threads.bulkPut(pack.threads);
-      await db.messages.bulkPut(pack.messages);
-      await db.prompts.bulkPut(pack.prompts);
-    },
-  );
+  await db.transaction('rw', [db.collections, db.documents, db.docTexts, db.chunks, db.vectors, db.threads, db.messages, db.prompts], async () => {
+    await db.collections.bulkPut(pack.collections);
+    await db.documents.bulkPut(documents);
+    await db.docTexts.bulkPut(pack.texts);
+    await db.chunks.bulkPut(pack.chunks);
+    await db.vectors.bulkPut(pack.vectors.map((v) => ({ chunkId: v.chunkId, docId: v.docId, embeddingKey: v.embeddingKey, vector: base64ToF32(v.vector) })));
+    await db.threads.bulkPut(pack.threads);
+    await db.messages.bulkPut(pack.messages);
+    await db.prompts.bulkPut(pack.prompts);
+  });
   knowledge.invalidate();
   return {
     collections: pack.collections.length,

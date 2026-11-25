@@ -202,7 +202,9 @@ Without Upstash outside production, limits fall back to an in-memory counter. Th
 ## Development
 
 ```bash
-npm test            # Vitest: chunker, search, retrieval quality, citations, parsers, OCR page splitting, sync, API, end-to-end pipeline, packs
+npm test            # Vitest: chunker, search, retrieval quality, citations, parsers, OCR page splitting, sync, API, end-to-end pipeline, packs, provider tool calls, UI (dialogs, menus, citations)
+npm run lint        # ESLint, then Prettier's formatting check (CI runs both)
+npm run format      # Prettier, rewriting files in place
 npm run typecheck
 npm run build
 ```

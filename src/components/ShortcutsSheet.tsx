@@ -44,7 +44,10 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
                   <dt className="text-[13px] text-ink">{what}</dt>
                   <dd className="flex shrink-0 gap-1">
                     {keys.map((k) => (
-                      <kbd key={k} className="min-w-6 rounded-md border border-line bg-canvas px-1.5 py-0.5 text-center font-mono text-[11px] text-ink shadow-[0_1px_0_var(--line)]">
+                      <kbd
+                        key={k}
+                        className="min-w-6 rounded-md border border-line bg-canvas px-1.5 py-0.5 text-center font-mono text-[11px] text-ink shadow-[0_1px_0_var(--line)]"
+                      >
                         {k}
                       </kbd>
                     ))}

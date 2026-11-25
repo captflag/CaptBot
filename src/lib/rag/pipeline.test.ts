@@ -132,7 +132,14 @@ describe('answer', () => {
     await ingest({ kind: 'text', name: 'bread.md', text: BAKING });
 
     const events = await collect(
-      answer({ thread: { collectionIds: [] }, history: [], question: 'How efficient are solar panels?', mode: 'chat', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [] },
+        history: [],
+        question: 'How efficient are solar panels?',
+        mode: 'chat',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const retrieval = events.find((e) => e.type === 'retrieval');
     expect(retrieval?.type).toBe('retrieval');
@@ -145,7 +152,12 @@ describe('answer', () => {
     expect(turn).toContain('<source id="1" document="solar.md"');
     expect(turn).toContain('<question>');
     expect(final.system).toMatch(/cite them inline/);
-    expect(events.filter((e) => e.type === 'text').map((e) => (e.type === 'text' ? e.text : '')).join('')).toContain('[1]');
+    expect(
+      events
+        .filter((e) => e.type === 'text')
+        .map((e) => (e.type === 'text' ? e.text : ''))
+        .join(''),
+    ).toContain('[1]');
   });
 
   it('only searches the collections a chat is scoped to', async () => {
@@ -154,7 +166,14 @@ describe('answer', () => {
     await ingest({ kind: 'text', name: 'wind.md', text: WIND }, [energy.id]);
 
     const events = await collect(
-      answer({ thread: { collectionIds: [energy.id] }, history: [], question: 'solar panels efficiency', mode: 'chat', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [energy.id] },
+        history: [],
+        question: 'solar panels efficiency',
+        mode: 'chat',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const retrieval = events.find((e) => e.type === 'retrieval');
     if (retrieval?.type !== 'retrieval') throw new Error('no retrieval event');
@@ -166,7 +185,14 @@ describe('answer', () => {
     await ingest({ kind: 'text', name: 'wind.md', text: WIND });
 
     const events = await collect(
-      answer({ thread: { collectionIds: [] }, history: [], question: 'Compare solar and wind', mode: 'research', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [] },
+        history: [],
+        question: 'Compare solar and wind',
+        mode: 'research',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const lastSteps = events.filter((e) => e.type === 'steps').at(-1);
     if (lastSteps?.type !== 'steps') throw new Error('no steps');
