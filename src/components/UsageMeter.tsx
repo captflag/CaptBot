@@ -19,25 +19,22 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
   const low = pct <= 15;
 
   return (
-    <div
-      className={compact ? 'mt-1' : 'space-y-1.5'}
-      title={`Free tier: ${chat.remaining} of ${chat.limit} AI calls left today, resets at ${resets}`}
-    >
+    <div className={compact ? 'mt-1' : 'space-y-1.5'} title={`Free tier: ${chat.remaining} of ${chat.limit} AI calls left today, resets at ${resets}`}>
       <div
         className={cn(
           'flex items-center justify-between gap-2',
           compact ? 'text-[10px]' : 'text-xs',
-          low ? 'text-amber-600 dark:text-amber-500' : 'text-gray-500 dark:text-gray-400',
+          low ? 'text-amber-700 dark:text-amber-500' : 'text-muted',
         )}
       >
         <span className="truncate">{compact ? `${chat.remaining}/${chat.limit} free calls` : `${chat.remaining} of ${chat.limit} AI calls left today`}</span>
         {!compact && <span className="shrink-0">resets at {resets}</span>}
       </div>
-      <div className={cn('overflow-hidden rounded-full bg-gray-200 dark:bg-white/10', compact ? 'h-0.5' : 'h-1.5')}>
-        <div className={cn('h-full rounded-full transition-all', low ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${pct}%` }} />
+      <div className={cn('overflow-hidden rounded-full bg-line', compact ? 'h-0.5' : 'h-1.5')}>
+        <div className={cn('h-full rounded-full transition-all', low ? 'bg-amber-500' : 'bg-accent-500')} style={{ width: `${pct}%` }} />
       </div>
       {!compact && usage.embed && (
-        <div className="text-[11px] text-gray-500 dark:text-gray-400">
+        <div className="text-[11px] text-muted">
           {usage.embed.remaining} of {usage.embed.limit} indexing requests left today (each covers up to 100 chunks).
         </div>
       )}

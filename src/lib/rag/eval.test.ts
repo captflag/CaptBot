@@ -16,7 +16,8 @@ import { buildSources, retrieve } from './retrieve';
 import { knowledge } from './store';
 
 const STOP = new Set('the and are for how what who does with from that this can our any after before much many long when where which'.split(' '));
-const terms = (s: string) => new Set((s.toLowerCase().match(/[a-z0-9%.,:]{3,}/g) ?? []).map((t) => t.replace(/[.,:]+$/, '')).filter((t) => t.length > 2 && !STOP.has(t)));
+const terms = (s: string) =>
+  new Set((s.toLowerCase().match(/[a-z0-9%.,:]{3,}/g) ?? []).map((t) => t.replace(/[.,:]+$/, '')).filter((t) => t.length > 2 && !STOP.has(t)));
 
 class HashEmbedder implements Embedder {
   readonly key = 'test:hash:512';

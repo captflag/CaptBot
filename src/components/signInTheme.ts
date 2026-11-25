@@ -25,25 +25,25 @@ export function setTheme(theme: 'light' | 'dark') {
 
 type Appearance = NonNullable<ComponentProps<typeof SignIn>['appearance']>;
 
-/** Clerk's sign-in form in the chat app's look: Inter, violet accent, rounded cards, gray borders. */
+/** Clerk's sign-in form in the chat app's look: green accent, rounded cards, cool grey borders. */
 export function signInAppearance(dark: boolean): Appearance {
-  const violet = dark ? '#8b5cf6' : '#7c3aed';
-  const border = dark ? '#1f2937' : '#e5e7eb';
+  const accent = dark ? '#19b77b' : '#0f9966';
+  const border = dark ? '#333842' : '#e1e5ea';
   return {
     variables: {
-      colorPrimary: violet,
+      colorPrimary: accent,
       colorPrimaryForeground: '#ffffff',
-      colorForeground: dark ? '#f3f4f6' : '#111827',
-      colorMutedForeground: dark ? '#9ca3af' : '#6b7280',
-      colorBackground: dark ? '#0f0f0f' : '#ffffff',
-      colorInput: dark ? '#1a1a1a' : '#ffffff',
-      colorInputForeground: dark ? '#f3f4f6' : '#111827',
-      colorNeutral: dark ? '#ffffff' : '#111827',
+      colorForeground: dark ? '#e9ebee' : '#1c2128',
+      colorMutedForeground: dark ? '#8b93a0' : '#6b7380',
+      colorBackground: dark ? '#1b1e24' : '#ffffff',
+      colorInput: dark ? '#2f343d' : '#ffffff',
+      colorInputForeground: dark ? '#e9ebee' : '#1c2128',
+      colorNeutral: dark ? '#ffffff' : '#1c2128',
       colorBorder: border,
-      colorRing: violet,
+      colorRing: accent,
       borderRadius: '0.625rem',
-      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-      fontFamilyButtons: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
+      fontFamilyButtons: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
     },
     elements: {
       rootBox: { width: '100%' },
@@ -53,12 +53,12 @@ export function signInAppearance(dark: boolean): Appearance {
         borderRadius: '1rem',
         border: `1px solid ${border}`,
         // Same lift as the chat composer.
-        boxShadow: dark ? '0 20px 25px -5px rgb(0 0 0 / 0.5)' : '0 20px 25px -5px rgb(229 231 235 / 0.5)',
+        boxShadow: dark ? '0 20px 25px -5px rgb(0 0 0 / 0.5)' : '0 20px 25px -5px rgb(199 205 213 / 0.5)',
       },
       card: { border: 'none', boxShadow: 'none' },
       headerTitle: { fontWeight: 600, letterSpacing: '-0.02em' },
       formFieldInput: {
-        '&:focus': { borderColor: '#a78bfa', boxShadow: `0 0 0 3px ${dark ? 'rgb(76 29 149 / 0.5)' : '#ede9fe'}` },
+        '&:focus': { borderColor: '#2fc98c', boxShadow: `0 0 0 3px ${dark ? 'rgb(12 125 84 / 0.5)' : '#c9f5e2'}` },
       },
     },
   };

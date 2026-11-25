@@ -143,7 +143,7 @@ function splitUnits(text: string, start: number, end: number, max: number): Unit
 /** The lines of a Markdown table (header, separator, rows), or null if the paragraph isn't one. */
 function tableLines(text: string, start: number, end: number): Span[] | null {
   const lines: Span[] = [];
-  for (let from = start; from < end; ) {
+  for (let from = start; from < end;) {
     let nl = text.indexOf('\n', from);
     if (nl === -1 || nl > end) nl = end;
     lines.push([from, nl]);

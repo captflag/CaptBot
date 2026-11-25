@@ -204,9 +204,22 @@ describe('two devices', () => {
 
   it("keeps this device's image data when the synced copy has none", async () => {
     setTracking(false);
-    await db.messages.add({ id: 'm1', threadId: 't', role: 'user', content: 'x', createdAt: 1, images: [{ name: 'a.png', mimeType: 'image/png', data: 'BBBB' }] });
+    await db.messages.add({
+      id: 'm1',
+      threadId: 't',
+      role: 'user',
+      content: 'x',
+      createdAt: 1,
+      images: [{ name: 'a.png', mimeType: 'image/png', data: 'BBBB' }],
+    });
     setTracking(true);
-    await applyPulled([{ table: 'messages', id: 'm1', row: { id: 'm1', threadId: 't', role: 'user', content: 'x (edited)', createdAt: 1, images: [{ name: 'a.png', mimeType: 'image/png', data: '' }] } }]);
+    await applyPulled([
+      {
+        table: 'messages',
+        id: 'm1',
+        row: { id: 'm1', threadId: 't', role: 'user', content: 'x (edited)', createdAt: 1, images: [{ name: 'a.png', mimeType: 'image/png', data: '' }] },
+      },
+    ]);
     const m = (await db.messages.get('m1'))!;
     expect(m.content).toBe('x (edited)');
     expect(m.images![0].data).toBe('BBBB');
@@ -350,7 +363,18 @@ describe('upload', () => {
 
   it('resumes an interrupted upload with only the missing chunks', async () => {
     const all = chunks('d1', 60);
-    await server.createDocument({ id: 'd1', name: 'd1.md', sourceType: 'text', mimeType: '', hash: 'h', collectionIds: [], charCount: 5, textLength: 5, chunkCount: 60, createdAt: 1 });
+    await server.createDocument({
+      id: 'd1',
+      name: 'd1.md',
+      sourceType: 'text',
+      mimeType: '',
+      hash: 'h',
+      collectionIds: [],
+      charCount: 5,
+      textLength: 5,
+      chunkCount: 60,
+      createdAt: 1,
+    });
     await server.appendText({ docId: 'd1', index: 0, text: 'hello' });
     await server.addChunks({ docId: 'd1', chunks: all.slice(0, 48) });
     const sent: number[] = [];

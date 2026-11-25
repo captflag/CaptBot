@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- The capt "Aperture" mark at rest, as drawn by src/components/Logo.tsx. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3dffb0"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#0b0d10" stroke="#262b33"/>
+  <circle cx="24" cy="24" r="15" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="70 24.2" transform="rotate(47 24 24)"/>
+  <circle cx="24" cy="24" r="8.5" fill="none" stroke="#eef1f4" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="38 15.4" opacity="0.9" transform="rotate(54 24 24)"/>
+  <circle cx="35.5" cy="24" r="2.6" fill="#3dffb0"/>
+</svg>

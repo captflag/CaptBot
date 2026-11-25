@@ -45,6 +45,7 @@ export function buildDeps(env: Env): ApiDeps {
     const fail = unavailable('The free tier is not configured on the server.');
     chat = {
       // Fails on the first read of the stream.
+      // eslint-disable-next-line require-yield -- it never yields: the first read throws.
       async *stream() {
         fail();
       },

@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createCollection, db } from '../db';
 import { applyPack, buildPack, decodePack, encodePack } from '../kb/transfer';
+import { GAP_SYSTEM } from '../prompts';
 import { providerOverrides } from '../providers';
 import type { ChatProvider, ChatRequest, EmbedInput, Embedder } from '../providers/types';
 import { getSettings, updateSettings } from '../settings';
@@ -37,6 +38,11 @@ class FakeChat implements ChatProvider {
   requests: ChatRequest[] = [];
   async *stream(req: ChatRequest) {
     this.requests.push(req);
+    if (req.system === GAP_SYSTEM) {
+      // One real gap, plus a query that already ran (which must not be searched twice).
+      yield { text: '{"queries": ["panel cleaning and maintenance", "Solar panel efficiency"]}' };
+      return;
+    }
     if (req.json) {
       yield { text: '{"queries": ["solar panel efficiency", "wind turbine output"]}' };
       return;
@@ -126,7 +132,14 @@ describe('answer', () => {
     await ingest({ kind: 'text', name: 'bread.md', text: BAKING });
 
     const events = await collect(
-      answer({ thread: { collectionIds: [] }, history: [], question: 'How efficient are solar panels?', mode: 'chat', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [] },
+        history: [],
+        question: 'How efficient are solar panels?',
+        mode: 'chat',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const retrieval = events.find((e) => e.type === 'retrieval');
     expect(retrieval?.type).toBe('retrieval');
@@ -139,7 +152,12 @@ describe('answer', () => {
     expect(turn).toContain('<source id="1" document="solar.md"');
     expect(turn).toContain('<question>');
     expect(final.system).toMatch(/cite them inline/);
-    expect(events.filter((e) => e.type === 'text').map((e) => (e.type === 'text' ? e.text : '')).join('')).toContain('[1]');
+    expect(
+      events
+        .filter((e) => e.type === 'text')
+        .map((e) => (e.type === 'text' ? e.text : ''))
+        .join(''),
+    ).toContain('[1]');
   });
 
   it('only searches the collections a chat is scoped to', async () => {
@@ -148,19 +166,33 @@ describe('answer', () => {
     await ingest({ kind: 'text', name: 'wind.md', text: WIND }, [energy.id]);
 
     const events = await collect(
-      answer({ thread: { collectionIds: [energy.id] }, history: [], question: 'solar panels efficiency', mode: 'chat', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [energy.id] },
+        history: [],
+        question: 'solar panels efficiency',
+        mode: 'chat',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const retrieval = events.find((e) => e.type === 'retrieval');
     if (retrieval?.type !== 'retrieval') throw new Error('no retrieval event');
     expect(retrieval.sources.every((s) => s.docName === 'wind.md')).toBe(true);
   });
 
-  it('runs deep research as plan → per-query search → report', async () => {
+  it('runs deep research as plan → per-query search → gap check → follow-up search → report', async () => {
     await ingest({ kind: 'text', name: 'solar.md', text: SOLAR });
     await ingest({ kind: 'text', name: 'wind.md', text: WIND });
 
     const events = await collect(
-      answer({ thread: { collectionIds: [] }, history: [], question: 'Compare solar and wind', mode: 'research', webSearch: false, signal: new AbortController().signal }),
+      answer({
+        thread: { collectionIds: [] },
+        history: [],
+        question: 'Compare solar and wind',
+        mode: 'research',
+        webSearch: false,
+        signal: new AbortController().signal,
+      }),
     );
     const lastSteps = events.filter((e) => e.type === 'steps').at(-1);
     if (lastSteps?.type !== 'steps') throw new Error('no steps');
@@ -168,6 +200,8 @@ describe('answer', () => {
       'Planning the research',
       'Searching: solar panel efficiency',
       'Searching: wind turbine output',
+      'Checking the evidence for gaps',
+      'Searching: panel cleaning and maintenance',
       'Writing the report',
     ]);
     expect(lastSteps.steps.every((s) => s.status === 'done')).toBe(true);

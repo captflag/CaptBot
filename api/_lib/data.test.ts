@@ -22,7 +22,10 @@ import { memoryLimiter } from './limits.js';
 /** In-memory stand-in for Postgres that records which user every call was scoped to. */
 class FakeStore implements DataStore {
   users: string[] = [];
-  docs = new Map<string, { name: string; status: string; hash: string; collectionIds: string[]; chunkCount: number; text: string; expected: number; parts: number }>();
+  docs = new Map<
+    string,
+    { name: string; status: string; hash: string; collectionIds: string[]; chunkCount: number; text: string; expected: number; parts: number }
+  >();
   chunks: StoredChunk[] = [];
   searches: SearchParams[] = [];
   pushed: SyncChange[] = [];
@@ -43,7 +46,16 @@ class FakeStore implements DataStore {
     this.seen(userId);
     const dup = [...this.docs.entries()].find(([, d]) => d.hash === b.hash);
     if (dup) return { duplicateOf: { id: dup[0], name: dup[1].name } };
-    this.docs.set(b.id, { name: b.name, status: 'embedding', hash: b.hash, collectionIds: b.collectionIds, chunkCount: b.chunkCount, text: '', expected: b.textLength, parts: 0 });
+    this.docs.set(b.id, {
+      name: b.name,
+      status: 'embedding',
+      hash: b.hash,
+      collectionIds: b.collectionIds,
+      chunkCount: b.chunkCount,
+      text: '',
+      expected: b.textLength,
+      parts: 0,
+    });
     return {};
   }
   async appendText(userId: string, b: AppendTextBody) {
@@ -71,7 +83,14 @@ class FakeStore implements DataStore {
   async documentState(userId: string, docId: string): Promise<DocumentStateResponse> {
     this.seen(userId);
     const d = this.docs.get(docId);
-    return { exists: Boolean(d), textLength: d?.text.length ?? 0, expectedLength: d?.expected ?? 0, parts: d?.parts ?? 0, chunkCount: d?.chunkCount ?? 0, ordinals: [] };
+    return {
+      exists: Boolean(d),
+      textLength: d?.text.length ?? 0,
+      expectedLength: d?.expected ?? 0,
+      parts: d?.parts ?? 0,
+      chunkCount: d?.chunkCount ?? 0,
+      ordinals: [],
+    };
   }
   async documentText(userId: string, docId: string) {
     this.seen(userId);
@@ -92,9 +111,7 @@ class FakeStore implements DataStore {
   }
   async neighbors(userId: string, positions: { docId: string; ordinal: number }[]): Promise<SearchChunk[]> {
     this.seen(userId);
-    return this.chunks
-      .map((c) => this.asSearchChunk(c))
-      .filter((c) => positions.some((p) => p.docId === c.docId && p.ordinal === c.ordinal));
+    return this.chunks.map((c) => this.asSearchChunk(c)).filter((c) => positions.some((p) => p.docId === c.docId && p.ordinal === c.ordinal));
   }
   async wipe(userId: string) {
     this.seen(userId);
@@ -286,7 +303,12 @@ describe('POST /api/data', () => {
     const { call, store } = setup();
     expect((await call('push', { changes: [{ table: 'users', id: 'x' }] })).status).toBe(400);
     expect((await call('push', { changes: new Array(201).fill({ table: 'threads', id: 'x' }) })).status).toBe(400);
-    const ok = await call('push', { changes: [{ table: 'threads', id: 't1', row: { title: 'Hi' } }, { table: 'prompts', id: 'p1' }] });
+    const ok = await call('push', {
+      changes: [
+        { table: 'threads', id: 't1', row: { title: 'Hi' } },
+        { table: 'prompts', id: 'p1' },
+      ],
+    });
     expect(await ok.json()).toEqual({ applied: 2, rejected: [] });
     expect(store.pushed[1]).toEqual({ table: 'prompts', id: 'p1', row: undefined });
   });

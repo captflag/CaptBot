@@ -12,8 +12,8 @@ import { toast } from './Toaster';
 
 function Splash() {
   return (
-    <div className="flex h-full items-center justify-center bg-[#F9FAFB] dark:bg-[#050505]">
-      <Logo size="md" />
+    <div className="flex h-full items-center justify-center bg-canvas dark:bg-canvas">
+      <Logo size="md" withWord />
     </div>
   );
 }
@@ -74,11 +74,7 @@ function SessionGate({ children }: { children: ReactNode }) {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      afterSignOutUrl="/"
-      appearance={{ variables: { colorPrimary: '#7c3aed' } }}
-    >
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/" appearance={{ variables: { colorPrimary: '#7c3aed' } }}>
       <SessionGate>{children}</SessionGate>
     </ClerkProvider>
   );

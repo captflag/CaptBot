@@ -39,17 +39,17 @@ export function Toaster() {
         <div
           key={t.id}
           className={cn(
-            'pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-3.5 py-3 text-sm shadow-lg dark:bg-[#111]',
-            t.kind === 'error' ? 'border-red-200 dark:border-red-900/60' : 'border-gray-200 dark:border-gray-800',
+            'anim-rise pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-raised px-3.5 py-3 text-sm shadow-lg',
+            t.kind === 'error' ? 'border-red-200 dark:border-red-900/60' : 'border-line',
           )}
         >
           {t.kind === 'error' ? (
             <TriangleAlert size={16} className="mt-0.5 shrink-0 text-red-500" />
           ) : (
-            <CircleCheck size={16} className="mt-0.5 shrink-0 text-violet-500" />
+            <CircleCheck size={16} className="mt-0.5 shrink-0 text-accent-500" />
           )}
-          <span className="flex-1 text-gray-700 dark:text-gray-200">{t.message}</span>
-          <button onClick={() => dismiss(t.id)} className="text-gray-400 hover:text-gray-600" aria-label="Dismiss">
+          <span className="flex-1 text-ink">{t.message}</span>
+          <button onClick={() => dismiss(t.id)} className="text-muted transition hover:text-ink" aria-label="Dismiss">
             <X size={14} />
           </button>
         </div>

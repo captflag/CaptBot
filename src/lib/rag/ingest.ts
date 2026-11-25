@@ -10,13 +10,11 @@ import { resumeUpload, uploadDocument, type UploadInput, type UploadResult } fro
 import type { Chunk, ChunkVector, DocText, KbDocument } from '../types';
 import { chunkText } from './chunker';
 import { errorText } from './json';
+import { ocrPages } from './ocr';
 import type { ParsedDoc } from './parsers';
 import { contextTitle, embedText, knowledge } from './store';
 
-export type IngestSource =
-  | { kind: 'file'; file: File }
-  | { kind: 'url'; url: string }
-  | { kind: 'text'; name: string; text: string };
+export type IngestSource = { kind: 'file'; file: File } | { kind: 'url'; url: string } | { kind: 'text'; name: string; text: string };
 
 // Documents are processed one at a time so large uploads don't trip provider rate limits.
 const INGEST_LOCK = 'captbot-ingest';
@@ -84,9 +82,9 @@ async function parseSource(source: IngestSource): Promise<ParsedDoc> {
   const { fetchUrl, normalizeText, parseFile } = await import('./parsers');
   switch (source.kind) {
     case 'file':
-      return parseFile(source.file);
+      return parseFile(source.file, ocrPages);
     case 'url':
-      return fetchUrl(source.url, getSettings().readerProxy);
+      return fetchUrl(source.url, getSettings().readerProxy, undefined, ocrPages);
     case 'text':
       return { text: normalizeText(source.text), mimeType: 'text/plain' };
   }
@@ -213,12 +211,7 @@ async function processDocument(doc: KbDocument, source: IngestSource): Promise<s
 }
 
 /** Sends a document to the account index and mirrors the outcome in the local row. Resolves to the id the document ends up with. */
-async function sendToServer(
-  doc: KbDocument,
-  source: DocText,
-  chunks: Chunk[],
-  send: (u: UploadInput) => Promise<UploadResult>,
-): Promise<string> {
+async function sendToServer(doc: KbDocument, source: DocText, chunks: Chunk[], send: (u: UploadInput) => Promise<UploadResult>): Promise<string> {
   const result = await send({
     doc: { ...doc, chunkCount: chunks.length },
     text: source.text,
@@ -246,9 +239,7 @@ export async function embedDocument(doc: KbDocument, chunks: Chunk[]): Promise<v
   const vectors: ChunkVector[] = [];
   for (let i = 0; i < chunks.length; i += embedder.batchSize) {
     const batch = chunks.slice(i, i + embedder.batchSize);
-    const embedded = await withRetry(() =>
-      embedder.embedDocuments(batch.map((c) => ({ title: contextTitle(doc.name, c.headingPath), text: embedText(c) }))),
-    );
+    const embedded = await withRetry(() => embedder.embedDocuments(batch.map((c) => ({ title: contextTitle(doc.name, c.headingPath), text: embedText(c) }))));
     batch.forEach((c, j) => vectors.push({ chunkId: c.id, docId: doc.id, embeddingKey: embedder.key, vector: embedded[j] }));
     // Stop quietly if the user deleted the document mid-way.
     if (!(await db.documents.get(doc.id))) return;

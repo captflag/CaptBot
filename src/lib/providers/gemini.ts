@@ -1,5 +1,5 @@
 import { GoogleGenAI, ThinkingLevel, type Content, type GenerateContentConfig, type Part, type ThinkingConfig } from '@google/genai';
-import type { ChatDelta, ChatProvider, ChatRequest, EmbedInput, Effort, Embedder } from './types';
+import type { ChatDelta, ChatProvider, ChatRequest, ChatTurn, EmbedInput, Effort, Embedder, ToolCall } from './types';
 import { ProviderError } from './types';
 import { geminiDocTexts, geminiQueryText, usesPromptStyle } from './geminiFormat';
 import { withRetry } from './http';
@@ -19,9 +19,23 @@ function thinkingFor(model: string, effort: Effort = 'normal'): ThinkingConfig |
   return undefined;
 }
 
+function toParts(m: ChatTurn): Part[] {
+  if (m.toolResults?.length) {
+    return m.toolResults.map((r) => ({ functionResponse: { id: r.id, name: r.name, response: r.isError ? { error: r.output } : { output: r.output } } }));
+  }
+  return [
+    ...(m.images ?? []).map((img): Part => ({ inlineData: { mimeType: img.mimeType, data: img.data } })),
+    // Empty text parts are rejected (e.g. an image-only question).
+    ...(m.content ? [{ text: m.content }] : []),
+    // Gemini 3 rejects a function call sent back without the thought signature it came with.
+    ...(m.toolCalls ?? []).map((c): Part => ({ functionCall: { id: c.id, name: c.name, args: c.args }, thoughtSignature: c.signature })),
+  ];
+}
+
 export class GeminiChat implements ChatProvider {
   readonly id = 'gemini' as const;
   readonly supportsWebSearch = true;
+  readonly supportsTools = true;
   private ai: GoogleGenAI;
 
   constructor(apiKey: string) {
@@ -29,29 +43,33 @@ export class GeminiChat implements ChatProvider {
   }
 
   async *stream(req: ChatRequest): AsyncGenerator<ChatDelta> {
-    const contents: Content[] = req.messages.map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [
-        ...(m.images ?? []).map((img): Part => ({ inlineData: { mimeType: img.mimeType, data: img.data } })),
-        // Empty text parts are rejected (e.g. an image-only question).
-        ...(m.content ? [{ text: m.content }] : []),
-      ],
-    }));
+    const contents: Content[] = req.messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: toParts(m) }));
+    const functions = req.tools?.length
+      ? [{ functionDeclarations: req.tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters })) }]
+      : [];
     const config: GenerateContentConfig = {
       systemInstruction: req.system,
       abortSignal: req.signal,
       maxOutputTokens: req.maxTokens,
       responseMimeType: req.json ? 'application/json' : undefined,
-      tools: req.webSearch ? [{ googleSearch: {} }] : undefined,
+      tools: req.webSearch || functions.length ? [...(req.webSearch ? [{ googleSearch: {} }] : []), ...functions] : undefined,
       thinkingConfig: thinkingFor(req.model, req.effort),
     };
 
-    const stream = await withRetry(
-      () => this.ai.models.generateContentStream({ model: req.model, contents, config }),
-      req.signal,
-    );
+    const stream = await withRetry(() => this.ai.models.generateContentStream({ model: req.model, contents, config }), req.signal);
+    const toolCalls: ToolCall[] = [];
     for await (const chunk of stream) {
       const candidate = chunk.candidates?.[0];
+      for (const p of candidate?.content?.parts ?? []) {
+        if (p.functionCall?.name) {
+          toolCalls.push({
+            id: p.functionCall.id || `call_${toolCalls.length}`,
+            name: p.functionCall.name,
+            args: p.functionCall.args ?? {},
+            signature: p.thoughtSignature,
+          });
+        }
+      }
       const text = (candidate?.content?.parts ?? [])
         .filter((p) => p.text && !p.thought)
         .map((p) => p.text)
@@ -62,6 +80,7 @@ export class GeminiChat implements ChatProvider {
       if (text || webSources.length) yield { text, webSources: webSources.length ? webSources : undefined };
       if (candidate?.finishReason === 'SAFETY') throw new ProviderError('Gemini blocked this response for safety reasons.', undefined, 'Gemini');
     }
+    if (toolCalls.length) yield { toolCalls };
   }
 }
 

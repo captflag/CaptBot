@@ -4,7 +4,17 @@ import type { Chunk } from '../types';
 import { remote } from './remote';
 
 function toChunk(c: SearchChunk): Chunk {
-  const chunk: Chunk = { id: c.id, docId: c.docId, ordinal: c.ordinal, start: c.start, end: c.end, text: c.text, headingPath: c.headingPath, page: c.page, pageEnd: c.pageEnd };
+  const chunk: Chunk = {
+    id: c.id,
+    docId: c.docId,
+    ordinal: c.ordinal,
+    start: c.start,
+    end: c.end,
+    text: c.text,
+    headingPath: c.headingPath,
+    page: c.page,
+    pageEnd: c.pageEnd,
+  };
   if (c.prefix) chunk.prefix = c.prefix;
   return chunk;
 }

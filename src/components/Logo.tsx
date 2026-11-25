@@ -1,49 +1,85 @@
-import { motion } from 'motion/react';
+import { useId, type CSSProperties } from 'react';
 import { cn } from '../lib/utils';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-  showText?: boolean;
+  /** An answer is being written: the arcs turn and the point beats until it is done. */
+  busy?: boolean;
+  /** Show "capt" beside the symbol (headers, the start screen); the symbol alone fits the rail and answers. */
+  withWord?: boolean;
 }
 
-const SIZES = { sm: 'h-6 w-6', md: 'h-9 w-9', lg: 'h-20 w-20' };
+/** Side of the symbol in pixels. */
+const SIZES = { sm: 32, md: 40, lg: 84 };
 
-export function Logo({ size = 'md', className, showText = true }: LogoProps) {
-  const small = size === 'sm';
+/**
+ * The capt mark, "Aperture": on a dark glass tile, two arcs close on a green point like a lens
+ * focusing on what matters. The tile stays dark in both themes, so the mark reads the same everywhere.
+ */
+export function Logo({ size = 'md', className, busy = false, withWord = false }: LogoProps) {
+  // Each mark needs its own gradient id: one shared id breaks every mark whenever the first is hidden.
+  const gradient = `capt-mark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const px = SIZES[size];
   return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <div className={cn('relative flex shrink-0 items-center justify-center', SIZES[size])}>
-        <div className="absolute inset-[-20%] rounded-full bg-violet-600/25 blur-xl" />
-        {!small && (
-          <motion.svg
-            viewBox="0 0 100 100"
-            className="pointer-events-none absolute inset-[-15%] h-[130%] w-[130%] text-violet-600 opacity-30"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-          >
-            <circle cx="50" cy="50" r="49" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4" />
-          </motion.svg>
-        )}
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-transparent border-t-violet-500 border-l-indigo-400/80"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-        />
-        <motion.div
-          className="absolute inset-[12%] rounded-full border-[1.5px] border-transparent border-r-violet-400/40 border-b-cyan-400/80"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
-        />
-        <div className="absolute inset-[28%] rounded-full bg-linear-to-br from-indigo-600 via-violet-700 to-violet-900 shadow-inner" />
-        <div className="absolute z-10 h-[18%] w-[18%] rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,1)]" />
-      </div>
-      {showText && size !== 'lg' && (
-        <div className="flex flex-col">
-          <span className="text-[15px] leading-tight font-bold tracking-tight text-gray-900 dark:text-white">CaptBot</span>
-          {!small && <span className="mt-0.5 text-[9px] font-semibold tracking-[0.2em] text-violet-500 uppercase">Knowledge</span>}
-        </div>
+    <span
+      role="img"
+      aria-label="capt"
+      data-busy={busy || undefined}
+      className={cn('logo inline-flex shrink-0 items-center select-none', className)}
+      style={{ gap: px * 0.3 }}
+    >
+      <svg aria-hidden="true" width={px} height={px} viewBox="0 0 48 48" className="shrink-0 overflow-visible">
+        <defs>
+          <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#3dffb0" />
+            <stop offset="1" stopColor="#14b8a6" />
+          </linearGradient>
+        </defs>
+        <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#0b0d10" stroke="#262b33" />
+        {/* The resting angles live on the wrappers, so the arcs' own animations can turn them freely. */}
+        <g transform="rotate(47 24 24)">
+          <circle
+            className="mark-outer"
+            cx="24"
+            cy="24"
+            r="15"
+            fill="none"
+            stroke={`url(#${gradient})`}
+            strokeWidth="4.5"
+            strokeLinecap="round"
+            strokeDasharray="70 24.2"
+          />
+        </g>
+        <g transform="rotate(54 24 24)">
+          <circle
+            className="mark-inner"
+            cx="24"
+            cy="24"
+            r="8.5"
+            fill="none"
+            stroke="#eef1f4"
+            strokeWidth="3.4"
+            strokeLinecap="round"
+            strokeDasharray="38 15.4"
+            opacity="0.9"
+          />
+        </g>
+        <circle className="mark-dot" cx="35.5" cy="24" r="2.6" fill="#3dffb0" />
+      </svg>
+      {withWord && (
+        <span
+          aria-hidden="true"
+          className="logo-word inline-flex leading-none font-extrabold whitespace-nowrap text-ink"
+          style={{ fontFamily: "'Geist', var(--font-sans)", fontSize: px * 0.88, letterSpacing: '-0.06em' }}
+        >
+          {[...'capt'].map((letter, i) => (
+            <i key={i} style={{ '--i': i } as CSSProperties}>
+              {letter}
+            </i>
+          ))}
+        </span>
       )}
-    </div>
+    </span>
   );
 }
